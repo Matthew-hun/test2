@@ -2,68 +2,59 @@ import { useState, useEffect } from "react";
 import { Player } from "../types/types";
 
 export default function usePlayers() {
-  const [players, setRegularPlayers] = useState<Player[]>([]);
-  const [newPlayer, setNewPlayer] = useState<string>();
+  const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("regularPlayers");
-      const regularPlayers = stored ? JSON.parse(stored) : [];
+    const loadPlayers = () => {
+      const storedPlayers = localStorage.getItem("players");
+      if (storedPlayers) {
+        setPlayers(JSON.parse(storedPlayers));
+      } else {
+        setPlayers([]);
+      }
+    };
 
-      const players = regularPlayers.map((player: string, idx: number) => ({
-        playerId: idx,
-        name: player,
-      }));
-      setRegularPlayers(players);
-      console.log(players);
-    } catch (error) {
-      console.error("Nem sikerült beolvasni a játékosokat:", error);
-    }
+    loadPlayers(); // első betöltés
+    window.addEventListener("storage", loadPlayers);
+
+    return () => window.removeEventListener("storage", loadPlayers);
   }, []);
 
-  const AddPlayer = () => {
-    const regularPlayers = localStorage.getItem("regularPlayers");
-    const items = regularPlayers ? JSON.parse(regularPlayers) : [];
-    if (newPlayer === null || newPlayer === undefined || newPlayer === "") {
-      throw new Error("Name is necessary");
-    } else if (items.includes(newPlayer)) {
-      throw new Error("Player with this name already exits")
-    } else {
-      items.push(newPlayer);
-      localStorage.setItem("regularPlayers", JSON.stringify(items));
-
-      const updated = items.map((p: string) => ({
-        playerId: p,
-        name: p,
-      }));
-      setRegularPlayers(updated);
-      setNewPlayer(""); // Töröljük az input mezőt is
+  const AddPlayer = (newPlayerName: string) => {
+    if (!newPlayerName) {
+      throw new Error("Name cannot be empty!");
     }
+
+    if (players.some(player => player.name === newPlayerName)) {
+      throw new Error("Player with this name already exists!");
+    }
+
+    // biztonságos ID generálás
+    const newId =
+      players.length === 0
+        ? 0
+        : Math.max(...players.map(p => p.playerId ?? -1)) + 1;
+
+    const newPlayer: Player = {
+      name: newPlayerName,
+      playerId: newId,
+    };
+
+    const newPlayers = [...players, newPlayer];
+    setPlayers(newPlayers);
+    localStorage.setItem("players", JSON.stringify(newPlayers));
   };
 
-  const RemovePlayer = (player: string) => {
-    try {
-      const regularPlayers = localStorage.getItem("regularPlayers");
-      let items = regularPlayers ? JSON.parse(regularPlayers) : [];
+  const RemovePlayer = (playerId: number | null) => {
+    if (playerId === null) return;
 
-      items = items.filter((x: string) => x !== player);
-      localStorage.setItem("regularPlayers", JSON.stringify(items));
-
-      // Frissítjük az állapotot is
-      const updated = items.map((p: string) => ({
-        playerId: p,
-        name: p,
-      }));
-      setRegularPlayers(updated);
-    } catch (error) {
-      alert("Sikertelen");
-    }
+    const newPlayers = players.filter(player => player.playerId !== playerId);
+    setPlayers(newPlayers);
+    localStorage.setItem("players", JSON.stringify(newPlayers));
   };
 
   return {
     players,
-    newPlayer,
-    setNewPlayer,
     AddPlayer,
     RemovePlayer,
   };

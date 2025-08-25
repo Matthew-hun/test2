@@ -18,13 +18,14 @@ export type Settings = {
     gameMode: GameModeType,
     startingScore: number,
     checkOutMode: CheckOutModeType,
+    numberOfLegs: number,
     startingTeam: number,
     randomStartingTeam: boolean,
 }
 
 export type Score = {
     scoreId: number,
-    playerId: number,
+    player: Player,
     teamId: number,
     legId: number,
     score: number,

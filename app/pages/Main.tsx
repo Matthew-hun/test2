@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import TeamCard from "../components/TeamCard";
 import { useGame } from "../hooks/GameProvider";
 import GameCard from "../components/GameCard";
+import Navbar from "../components/Navbar";
 
-const Main = () => {
-  const [gameSettingsOpen, setGameSettingsOpen] = useState<boolean>(false);
-  const { state, dispatch } = useGame();
+const Main = () => {  const { state, dispatch } = useGame();
   return (
-    <div className="w-screen h-screen p-4 flex justify-center">
-      <div className="w-fit flex flex-col gap-4">
+    <div className="w-screen h-screen p-4 flex flex-col items-center">
+      <div><Navbar /></div>
+      <div className="w-full h-full flex flex-col items-center gap-4">
         <GameCard />
-        <div className="flex justify-center w-full gap-4">
+        <div className="flex justify-center h-fit w-full gap-4">
           {state.teams.map((team, teamIdx) => {
             return (
               <TeamCard

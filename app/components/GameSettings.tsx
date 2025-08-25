@@ -34,6 +34,7 @@ import {
 } from "react-icons/io5";
 import usePlayers from "../hooks/usePlayers";
 import { GameActionType, useGame } from "../hooks/GameProvider";
+import { useTheme } from "next-themes";
 
 export interface GameSettingsProps {
   open: boolean;
@@ -54,19 +55,33 @@ const GameSettings: FC<GameSettingsProps> = ({
           <SheetTitle className="text-white">Game Settings</SheetTitle>
         </SheetHeader>
         <div className="w-full flex flex-col gap-4 p-4">
+          <Theme />
           <Settings />
           <TeamSetup />
           <AddNewPlayer />
         </div>
         <SheetFooter>
-          <ActionButtons setOpen={setOpen}/>
+          <ActionButtons setOpen={setOpen} />
         </SheetFooter>
       </SheetContent>
     </Sheet>
   );
 };
 
+
 export default GameSettings;
+
+const Theme = () => {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="flex gap-4 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <div className="cursor-pointer w-4 h-4 rounded-full bg-[#5f5cff]" onClick={() => setTheme('purple')}></div>
+      <div className="cursor-pointer w-4 h-4 rounded-full bg-[#10b981]" onClick={() => setTheme('emerald')}></div>
+      {/* <div className="cursor-pointer w-4 h-4 rounded-full bg-primary"></div> */}
+    </div>
+  )
+}
 
 const Settings = () => {
   const { state, dispatch } = useGame();
@@ -103,7 +118,7 @@ const Settings = () => {
     >
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <IoSettings className="text-white text-sm" />
           </div>
           <h2 className="text-xl font-semibold text-white">Match Settings</h2>
@@ -205,8 +220,13 @@ const Settings = () => {
   );
 };
 
+interface PlayerOptions {
+  label: string;
+  value: string | number | null; // vagy csak number, ha nem lehet null
+}
+
 const TeamSetup = () => {
-  const { players, newPlayer, setNewPlayer, AddPlayer } = usePlayers();
+  const { players } = usePlayers();
   const { state, dispatch } = useGame();
 
   const [messageApi, contextHolder] = message.useMessage();
@@ -242,13 +262,13 @@ const TeamSetup = () => {
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <IoPeople className="text-white text-sm" />
             </div>
             <h2 className="text-xl font-semibold text-white">
               Teams & Players
             </h2>
-            <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+            <span className="bg-primary text-white text-xs px-2 py-1 rounded-full font-medium">
               {state.teams.length} {state.teams.length === 1 ? "Team" : "Teams"}
             </span>
           </div>
@@ -260,7 +280,7 @@ const TeamSetup = () => {
                 payload: state.teams.length,
               });
             }}
-            className="cursor-pointer flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-emerald-500/25"
+            className="cursor-pointer flex items-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
           >
             <IoAddCircle className="text-lg" />
             Add Team
@@ -273,7 +293,7 @@ const TeamSetup = () => {
             {state.teams.map((team, teamIndex) => (
               <div
                 key={`team-${teamIndex}`}
-                className="bg-white/10 border border-slate-600 rounded-xl p-5 hover:border-emerald-500/50 transition-all duration-300 group"
+                className="bg-white/10 border border-slate-600 rounded-xl p-5 hover:border-primary/50 transition-all duration-300 group"
               >
                 {/* Team Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -294,7 +314,7 @@ const TeamSetup = () => {
                         />
                       )}
                     </div>
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary rounded-lg flex items-center justify-center text-white font-bold">
                       {teamIndex + 1}
                     </div>
                     <div>
@@ -323,7 +343,7 @@ const TeamSetup = () => {
                 <div className="space-y-3">
                   {team.players.map((player, playerIndex) => (
                     <div key={playerIndex} className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-xs font-medium">
+                      <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
                         {playerIndex + 1}
                       </div>
                       <div className="flex-1">
@@ -331,40 +351,34 @@ const TeamSetup = () => {
                           size="large"
                           className="w-full"
                           options={players.map((player) => ({
-                            value: player.playerId,
                             label: player.name,
+                            value: player.playerId, // <-- csak az ID kerül ide
                           }))}
+                          value={player.playerId ?? undefined}
                           placeholder={`Select Player ${playerIndex + 1}`}
-                          value={player.playerId}
                           onChange={(value) => {
-                            dispatch({
-                              type: GameActionType.UPDATE_PLAYER_IN_TEAM,
-                              payload: {
-                                teamIdx: teamIndex,
-                                playerIdx: playerIndex,
-                                newPlayer: players[value],
-                              },
-                            });
+                            const selectedPlayer = players.find(p => p.playerId === value);
+                            if (selectedPlayer) {
+                              dispatch({
+                                type: GameActionType.UPDATE_PLAYER_IN_TEAM,
+                                payload: {
+                                  teamIdx: teamIndex,
+                                  playerIdx: playerIndex,
+                                  newPlayer: selectedPlayer,
+                                },
+                              });
+                            }
                           }}
                           showSearch
                           optionFilterProp="label"
-                          filterSort={(optionA, optionB) =>
-                            (optionA?.label ?? "")
-                              .toLowerCase()
-                              .localeCompare(
-                                (optionB?.label ?? "").toLowerCase()
-                              )
+                          filterOption={(input, option) =>
+                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                           }
-                          // EZEKET ADD HOZZÁ:
-                          getPopupContainer={(triggerNode) =>
-                            triggerNode.parentElement
-                          }
-                          dropdownStyle={{
-                            zIndex: 999999,
-                            pointerEvents: "auto",
-                          }}
+                          getPopupContainer={(triggerNode) => triggerNode.parentElement}
+                          dropdownStyle={{ zIndex: 999999 }}
                           style={{ pointerEvents: "auto" }}
                         />
+
                       </div>
                       <button
                         onClick={() => {
@@ -396,7 +410,7 @@ const TeamSetup = () => {
                         payload: teamIndex,
                       })
                     }
-                    className="cursor-pointer w-full flex items-center justify-center gap-2 bg-slate-600 hover:bg-emerald-500/20 border border-dashed border-slate-500 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 py-3 rounded-lg transition-all duration-200 font-medium"
+                    className="cursor-pointer w-full flex items-center justify-center gap-2 bg-slate-600 hover:bg-primary/20 border border-dashed border-slate-500 hover:border-primary text-slate-400 hover:text-primary py-3 rounded-lg transition-all duration-200 font-medium"
                   >
                     <IoAddCircle className="text-lg" />
                     Add Player
@@ -425,7 +439,7 @@ const TeamSetup = () => {
                   payload: state.teams.length,
                 });
               }}
-              className="cursor-pointer flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium mx-auto transition-all duration-200 shadow-lg hover:shadow-emerald-500/25"
+              className="cursor-pointer flex items-center gap-2 bg-primary hover:bg-primary text-white px-6 py-3 rounded-lg font-medium mx-auto transition-all duration-200 shadow-lg hover:shadow-primary/25"
             >
               <IoAddCircle className="text-lg" />
               Add First Team
@@ -438,7 +452,9 @@ const TeamSetup = () => {
 };
 
 const AddNewPlayer = () => {
-  const { players, newPlayer, setNewPlayer, AddPlayer } = usePlayers();
+  const { AddPlayer } = usePlayers();
+
+  const [newPalyerName, setNewPlayerName] = useState<string>("");
 
   const [messageApi, contextHolder] = message.useMessage();
   const Message = (type: "error" | "success", message: string) => {
@@ -472,7 +488,7 @@ const AddNewPlayer = () => {
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <IoPersonAdd className="text-white text-sm" />
             </div>
             <h2 className="text-xl font-semibold text-white">Add new Player</h2>
@@ -481,20 +497,20 @@ const AddNewPlayer = () => {
 
         <div className="flex gap-4">
           <Input
-            value={newPlayer}
+            value={newPalyerName}
             placeholder="Player name"
-            onChange={(e) => setNewPlayer(e.target.value)}
+            onChange={(e) => setNewPlayerName(e.target.value)}
             size="large"
           />
           <button
             onClick={() => {
               try {
-                AddPlayer();
+                AddPlayer(newPalyerName);
               } catch (error) {
                 error instanceof Error && Message("error", error.message);
               }
             }}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 bg-slate-600 hover:bg-emerald-500/20 border border-dashed border-slate-500 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 py-3 rounded-lg transition-all duration-200 font-medium"
+            className="cursor-pointer w-full flex items-center justify-center gap-2 bg-slate-600 hover:bg-primary/20 border border-dashed border-slate-500 hover:border-primary text-slate-400 hover:text-primary py-3 rounded-lg transition-all duration-200 font-medium"
           >
             <IoAddCircle className="text-lg" />
             Add Player
@@ -509,7 +525,7 @@ interface ActionButtonsProps {
   setOpen: (value: boolean) => void;
 }
 
-const ActionButtons:FC<ActionButtonsProps> = ({setOpen}) => {
+const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
   const { state, dispatch } = useGame();
   return (
     state.teams.length > 0 && (
@@ -517,7 +533,7 @@ const ActionButtons:FC<ActionButtonsProps> = ({setOpen}) => {
         {/* Save Button - Medium emerald */}
         {/* <button
               onClick={Close}
-              className="cursor-pointer flex items-center gap-2 bg-emerald-700/30 hover:bg-emerald-600/40 border border-emerald-600/40 hover:border-emerald-500/60 text-emerald-200 hover:text-emerald-100 px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-emerald-500/15"
+              className="cursor-pointer flex items-center gap-2 bg-emerald-700/30 hover:bg-primary/40 border border-primary/40 hover:border-primary/60 text-emerald-200 hover:text-emerald-100 px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/15"
             >
               <IoSave className="text-lg" />
               Save current match
@@ -529,7 +545,7 @@ const ActionButtons:FC<ActionButtonsProps> = ({setOpen}) => {
             dispatch({ type: GameActionType.CREATE_GAME });
             setOpen(false);
           }}
-          className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-emerald-500/25 ring-2 ring-emerald-400/30 hover:ring-emerald-400/50"
+          className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-primar/50 to-primary hover:from-primary/50 hover:to-primary text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
         >
           <IoPlay className="text-lg" />
           Start Game

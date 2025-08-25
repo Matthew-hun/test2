@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConfigProvider } from "antd";
 import { GameProvider } from "./hooks/GameProvider";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,23 +27,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <GameProvider>
-        <ConfigProvider
-          theme={{
-            token: {
-              colorPrimary: "var(--color-primary)",
-            },
-          }}
-        >
-          <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    <html lang="en" data-theme="purple">
+      <ThemeProvider>
+        <GameProvider>
+          <ConfigProvider
+            theme={{
+              token: {
+                colorPrimary: "var(--color-primary)",
+              },
+            }}
           >
-            {children}
-            <Toaster position="top-center" />
-          </body>
-        </ConfigProvider>
-      </GameProvider>
+            <body
+              className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            >
+              {children}
+              <Toaster position="top-center" />
+            </body>
+          </ConfigProvider>
+        </GameProvider>
+      </ThemeProvider>
     </html>
   );
 }

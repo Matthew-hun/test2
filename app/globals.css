@@ -1,7 +1,49 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "daisyui";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Alap (lila) téma */
+:root {
+  --color-primary: #5f5cff;
+  /* DaisyUI lila */
+  --color-primary-dark: #7c3aed;
+  --color-primary-hover: #8b5cf6;
+  --color-primary-active: #6d28d9;
+
+  --color-secondary: #34b5a1;
+
+  --color-background: #0f172a;
+  --color-background-light: #1e293b;
+  --color-foreground: #ffffff;
+}
+
+[data-theme="purple"] {
+  --color-primary: #5f5cff;
+  /* DaisyUI lila */
+  --color-primary-dark: #7c3aed;
+  --color-primary-hover: #8b5cf6;
+  --color-primary-active: #6d28d9;
+  --color-background: #0f172a;
+
+}
+
+[data-theme="emerald"] {
+  --color-primary: #10b981;
+  /* Emerald zöld */
+  --color-primary-dark: #4fbb86;
+  --color-primary-hover: #3c7d5e;
+  --color-primary-active: #059669;
+  --color-background: #0f172a;
+
+}
+
+[data-theme="yellow"] {
+  --color-primary: #f59e0b;
+  --color-secondary: #34d399;
+  --color-accent: #7e5bef;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -116,6 +158,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -125,14 +168,20 @@
   --color-background: #0f172a;
   --color-background-light: #1e293b;
 
-  --color-primary: #10b981;
-  --color-primary-dark: #4fbb86;
-  --color-primary-hover: #3c7d5e;
-  --color-primary-active: #059669;
+  --color-primary: #a78bfa;
+  /* DaisyUI lila */
+  --color-primary-dark: #7c3aed;
+  /* dark purple */
+  --color-primary-hover: #8b5cf6;
+  /* hover lila */
+  --color-primary-active: #6d28d9;
+  /* active lila */
+
 
   --color-secondary: #34b5a1;
 
-  --color-progress: #54e3c6;
+  --color-progress-from: #54e3c6;
+  --color-progress-to: #047857;
   --color-remainingProgress: #62748e;
 
   --color-placeholder: #94a3b8;

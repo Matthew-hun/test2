@@ -17,8 +17,10 @@ import {
   Team,
 } from "../types/types";
 import { message } from "antd";
+import { GetRaminingScore, IsWinningThrow } from "./selectors";
+import { stat } from "fs";
 
-interface GameStats {}
+interface GameStats { }
 
 interface GameContextType {
   state: Game;
@@ -49,6 +51,10 @@ export enum GameActionType {
   /* GAME LOGIC */
   SET_ACTIVE_TEAM,
   SET_ACTIVE_PLAYER_IN_TEAM,
+  ADD_SCORE,
+  INCREASE_TEAM_INDEX,
+  INCREASE_LEG_INDEX,
+  REMOVE_SCORE,
 }
 
 type GameAction =
@@ -63,28 +69,33 @@ type GameAction =
   /* TEAM MANAGEMENT */
   | { type: GameActionType.ADD_TEAM }
   | {
-      type: GameActionType.ADD_PLAYER_TO_TEAM;
-      payload: { teamIdx: number; player: Player };
-    }
+    type: GameActionType.ADD_PLAYER_TO_TEAM;
+    payload: { teamIdx: number; player: Player };
+  }
   | { type: GameActionType.ADD_EMPTY_PLAYER; payload: number }
   | { type: GameActionType.REMOVE_TEAM; payload: number }
   | {
-      type: GameActionType.REMOVE_PLAYER_FROM_TEAM;
-      payload: { teamIdx: number; playerIdx: number };
-    }
+    type: GameActionType.REMOVE_PLAYER_FROM_TEAM;
+    payload: { teamIdx: number; playerIdx: number };
+  }
   | {
-      type: GameActionType.UPDATE_PLAYER_IN_TEAM;
-      payload: { teamIdx: number; playerIdx: number; newPlayer: Player };
-    }
+    type: GameActionType.UPDATE_PLAYER_IN_TEAM;
+    payload: { teamIdx: number; playerIdx: number; newPlayer: Player };
+  }
   /* GAME MANAGEMENT */
   | { type: GameActionType.CREATE_GAME }
   | { type: GameActionType.SAVE_GAME }
   | { type: GameActionType.LOAD_GAME }
+  /* GAME LOGIC */
   | { type: GameActionType.SET_ACTIVE_TEAM; payload: number }
   | {
-      type: GameActionType.SET_ACTIVE_PLAYER_IN_TEAM;
-      payload: { teamIdx: number; playerIdx: number };
-    };
+    type: GameActionType.SET_ACTIVE_PLAYER_IN_TEAM;
+    payload: { teamIdx: number; playerIdx: number };
+  }
+  | { type: GameActionType.ADD_SCORE; payload: { score: number, thrownDartsToCheckout: number, teamId: number, player: Player } }
+  | { type: GameActionType.INCREASE_TEAM_INDEX }
+  | { type: GameActionType.INCREASE_LEG_INDEX }
+  | { type: GameActionType.REMOVE_SCORE }
 
 const gameReducer = (state: Game, action: GameAction): Game => {
   switch (action.type) {
@@ -113,7 +124,6 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       return {
         ...state,
         settings: { ...state.settings, startingTeam: action.payload },
-        currTeamIdx: action.payload,
       };
     }
     case GameActionType.SET_STARTING_SCORE: {
@@ -151,9 +161,9 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         teams: state.teams.map((team, idx) =>
           idx === teamIdx
             ? {
-                ...team,
-                players: [...team.players, player],
-              }
+              ...team,
+              players: [...team.players, player],
+            }
             : team
         ),
       };
@@ -219,8 +229,19 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       };
     }
     case GameActionType.CREATE_GAME: {
+      const newGame: Game = {
+        ...state,
+        teams: state.teams.map((team) => { return { ...team, wins: 0, currPlayerIdx: 0 } }),
+        scores: [],
+        currLegIdx: 0,
+        currTeamIdx: state.settings.randomStartingTeam
+          ? Math.floor(Math.random() * state.teams.length) // ← javítva: Math.floor
+          : state.settings.startingTeam,
+        gameState: GameState.Running,
+        winnerTeamIdx: undefined,
+      }
       localStorage.setItem("match", JSON.stringify(state));
-      return state;
+      return newGame;
     }
     case GameActionType.LOAD_GAME: {
       const ls = localStorage.getItem("match");
@@ -252,6 +273,127 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         }),
       };
     }
+
+    case GameActionType.ADD_SCORE: {
+      const { score, thrownDartsToCheckout, teamId, player } = action.payload;
+
+      // Ha már vége a játéknak, ne csinálj semmit
+      if (state.gameState === GameState.Over) return state;
+
+      const remainingScore = GetRaminingScore(state, state.currTeamIdx);
+      const newRemainingScore = remainingScore - score;
+      const isLegWin = newRemainingScore === 0;
+      const isGameWin = IsWinningThrow(state, score);
+
+      const newScore: Score = {
+        scoreId: state.scores.length,
+        player: player,
+        teamId: teamId,
+        legId: state.currLegIdx,
+        score: score,
+        remainingScore: newRemainingScore,
+        checkOutAttempts: Number(thrownDartsToCheckout),
+      };
+
+      let newState: Game = {
+        ...state,
+        scores: [...state.scores, newScore],
+      };
+
+      if (isLegWin) {
+        // Ez a dobás leg-et nyer (lehet hogy a teljes játékot is)
+        const winningTeamIdx = state.currTeamIdx;
+
+        newState = {
+          ...newState,
+          gameState: isGameWin ? GameState.Over : state.gameState, // ✨ Ha teljes játékot nyer, állítsd Over-re
+          winnerTeamIdx: isGameWin ? winningTeamIdx : state.winnerTeamIdx, // ✨ Győztes csapat beállítása
+          currLegIdx: state.currLegIdx + 1,
+          currTeamIdx: (state.settings.startingTeam + state.currTeamIdx + 1) % state.teams.length,
+          teams: state.teams.map((team, idx) => {
+            if (idx === winningTeamIdx) {
+              return {
+                ...team,
+                wins: team.wins + 1,
+                currPlayerIdx: (team.currPlayerIdx + 1) % team.players.length,
+              };
+            } else {
+              return {
+                ...team,
+                currPlayerIdx: team.currPlayerIdx,
+              };
+            }
+          }),
+        };
+      } else {
+        // Ez a dobás nem nyer leg-et, léptetjük a következő játékosra/csapatra
+        const currentTeam = state.teams[state.currTeamIdx];
+        const nextPlayerIdx = (currentTeam.currPlayerIdx + 1) % currentTeam.players.length;
+        const nextTeamIdx = (state.currTeamIdx + 1) % state.teams.length;
+
+        newState = {
+          ...newState,
+          currTeamIdx: nextTeamIdx,
+          teams: state.teams.map((team, idx) => {
+            if (idx === state.currTeamIdx) {
+              return {
+                ...team,
+                currPlayerIdx: nextPlayerIdx,
+              };
+            }
+            return team;
+          }),
+        };
+      }
+
+      localStorage.setItem("match", JSON.stringify(newState));
+      return newState;
+    }
+
+    case GameActionType.REMOVE_SCORE: {
+      if (state.scores.length <= 0) return state;
+
+      const removedScore = state.scores[state.scores.length - 1];
+      const newScoreHistory = state.scores.slice(0, -1);
+
+      const newTeams: Team[] = state.teams.map((team) =>
+        team.teamId === removedScore?.teamId
+          ? removedScore.remainingScore === 0
+            ? {
+              ...team,
+              currPlayerIdx:
+                (team.currPlayerIdx - 1 + team.players.length) %
+                team.players.length,
+              wins: Math.max(0, team.wins - 1),
+            }
+            : {
+              ...team,
+              currPlayerIdx:
+                (team.currPlayerIdx - 1 + team.players.length) %
+                team.players.length,
+            }
+          : team
+      );
+
+      const newCurrTeamIdx =
+        (state.currTeamIdx - 1 + state.teams.length) % state.teams.length;
+
+      const newCurrLegIdx = removedScore?.remainingScore === 0 ? state.currLegIdx - 1 : state.currLegIdx;
+
+      const newState: Game = {
+        ...state,
+        scores: newScoreHistory,
+        teams: newTeams,
+        currTeamIdx: newCurrTeamIdx,
+        currLegIdx: newCurrLegIdx,
+      }
+
+      localStorage.setItem("match", JSON.stringify(newState));
+
+      return newState;
+    }
+
+
     default:
       return state;
   }
