@@ -9,7 +9,7 @@ import Navbar from "../components/Navbar";
 
 const Main = () => {  const { state, dispatch } = useGame();
   return (
-    <div className="w-screen h-full p-4 flex flex-col items-center overflow-x-hidden">
+    <div className="w-screen min-h-screen h-full p-4 flex flex-col items-center">
       <div><Navbar /></div>
       <div className="w-full h-full flex flex-col items-center gap-4">
         <GameCard />

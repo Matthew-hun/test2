@@ -65,19 +65,19 @@ type GameAction =
   /* TEAM MANAGEMENT */
   | { type: GameActionType.ADD_TEAM }
   | {
-    type: GameActionType.ADD_PLAYER_TO_TEAM;
-    payload: { teamIdx: number; player: Player };
-  }
+      type: GameActionType.ADD_PLAYER_TO_TEAM;
+      payload: { teamIdx: number; player: Player };
+    }
   | { type: GameActionType.ADD_EMPTY_PLAYER; payload: number }
   | { type: GameActionType.REMOVE_TEAM; payload: number }
   | {
-    type: GameActionType.REMOVE_PLAYER_FROM_TEAM;
-    payload: { teamIdx: number; playerIdx: number };
-  }
+      type: GameActionType.REMOVE_PLAYER_FROM_TEAM;
+      payload: { teamIdx: number; playerIdx: number };
+    }
   | {
-    type: GameActionType.UPDATE_PLAYER_IN_TEAM;
-    payload: { teamIdx: number; playerIdx: number; newPlayer: Player };
-  }
+      type: GameActionType.UPDATE_PLAYER_IN_TEAM;
+      payload: { teamIdx: number; playerIdx: number; newPlayer: Player };
+    }
   /* GAME MANAGEMENT */
   | { type: GameActionType.CREATE_GAME }
   | { type: GameActionType.SAVE_GAME }
@@ -85,13 +85,21 @@ type GameAction =
   /* GAME LOGIC */
   | { type: GameActionType.SET_ACTIVE_TEAM; payload: number }
   | {
-    type: GameActionType.SET_ACTIVE_PLAYER_IN_TEAM;
-    payload: { teamIdx: number; playerIdx: number };
-  }
-  | { type: GameActionType.ADD_SCORE; payload: { score: number, thrownDartsToCheckout: number, teamId: number, player: Player } }
+      type: GameActionType.SET_ACTIVE_PLAYER_IN_TEAM;
+      payload: { teamIdx: number; playerIdx: number };
+    }
+  | {
+      type: GameActionType.ADD_SCORE;
+      payload: {
+        score: number;
+        thrownDartsToCheckout: number;
+        teamId: number;
+        player: Player;
+      };
+    }
   | { type: GameActionType.INCREASE_TEAM_INDEX }
   | { type: GameActionType.INCREASE_LEG_INDEX }
-  | { type: GameActionType.REMOVE_SCORE }
+  | { type: GameActionType.REMOVE_SCORE };
 
 const gameReducer = (state: Game, action: GameAction): Game => {
   switch (action.type) {
@@ -157,9 +165,9 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         teams: state.teams.map((team, idx) =>
           idx === teamIdx
             ? {
-              ...team,
-              players: [...team.players, player],
-            }
+                ...team,
+                players: [...team.players, player],
+              }
             : team
         ),
       };
@@ -225,18 +233,26 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       };
     }
     case GameActionType.CREATE_GAME: {
+      const startingTeamIdx = state.settings.randomStartingTeam
+        ? Math.floor(Math.random() * state.teams.length)
+        : state.settings.startingTeam ?? 0; // Ha nincs startingTeam, 0
+
       const newGame: Game = {
         ...state,
-        teams: state.teams.map((team) => { return { ...team, wins: 0, currPlayerIdx: 0 } }),
+        teams: state.teams.map((team) => ({
+          ...team,
+          wins: 0,
+          currPlayerIdx: 0,
+        })),
         scores: [],
         currLegIdx: 0,
-        currTeamIdx: state.settings.randomStartingTeam
-          ? Math.floor(Math.random() * state.teams.length) // ← javítva: Math.floor
-          : state.settings.startingTeam,
+        currTeamIdx: startingTeamIdx,
         gameState: GameState.Running,
         winnerTeamIdx: undefined,
-      }
-      localStorage.setItem("match", JSON.stringify(state));
+      };
+
+      localStorage.setItem("match", JSON.stringify(newGame));
+
       return newGame;
     }
     case GameActionType.LOAD_GAME: {
@@ -299,13 +315,14 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       if (isLegWin) {
         // Ez a dobás leg-et nyer (lehet hogy a teljes játékot is)
         const winningTeamIdx = state.currTeamIdx;
+        const nextLegStartingTeamIdx = (winningTeamIdx + 1) % state.teams.length;
 
         newState = {
           ...newState,
           gameState: isGameWin ? GameState.Over : state.gameState, // ✨ Ha teljes játékot nyer, állítsd Over-re
           winnerTeamIdx: isGameWin ? winningTeamIdx : state.winnerTeamIdx, // ✨ Győztes csapat beállítása
           currLegIdx: state.currLegIdx + 1,
-          currTeamIdx: (state.settings.startingTeam + state.currTeamIdx + 1) % state.teams.length,
+          currTeamIdx: nextLegStartingTeamIdx,
           teams: state.teams.map((team, idx) => {
             if (idx === winningTeamIdx) {
               return {
@@ -324,7 +341,8 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       } else {
         // Ez a dobás nem nyer leg-et, léptetjük a következő játékosra/csapatra
         const currentTeam = state.teams[state.currTeamIdx];
-        const nextPlayerIdx = (currentTeam.currPlayerIdx + 1) % currentTeam.players.length;
+        const nextPlayerIdx =
+          (currentTeam.currPlayerIdx + 1) % currentTeam.players.length;
         const nextTeamIdx = (state.currTeamIdx + 1) % state.teams.length;
 
         newState = {
@@ -356,25 +374,28 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         team.teamId === removedScore?.teamId
           ? removedScore.remainingScore === 0
             ? {
-              ...team,
-              currPlayerIdx:
-                (team.currPlayerIdx - 1 + team.players.length) %
-                team.players.length,
-              wins: Math.max(0, team.wins - 1),
-            }
+                ...team,
+                currPlayerIdx:
+                  (team.currPlayerIdx - 1 + team.players.length) %
+                  team.players.length,
+                wins: Math.max(0, team.wins - 1),
+              }
             : {
-              ...team,
-              currPlayerIdx:
-                (team.currPlayerIdx - 1 + team.players.length) %
-                team.players.length,
-            }
+                ...team,
+                currPlayerIdx:
+                  (team.currPlayerIdx - 1 + team.players.length) %
+                  team.players.length,
+              }
           : team
       );
 
       const newCurrTeamIdx =
         (state.currTeamIdx - 1 + state.teams.length) % state.teams.length;
 
-      const newCurrLegIdx = removedScore?.remainingScore === 0 ? state.currLegIdx - 1 : state.currLegIdx;
+      const newCurrLegIdx =
+        removedScore?.remainingScore === 0
+          ? state.currLegIdx - 1
+          : state.currLegIdx;
 
       const newState: Game = {
         ...state,
@@ -382,13 +403,12 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         teams: newTeams,
         currTeamIdx: newCurrTeamIdx,
         currLegIdx: newCurrLegIdx,
-      }
+      };
 
       localStorage.setItem("match", JSON.stringify(newState));
 
       return newState;
     }
-
 
     default:
       return state;
