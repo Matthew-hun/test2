@@ -6,6 +6,9 @@ import TeamCard from "../components/TeamCard";
 import { useGame } from "../hooks/GameProvider";
 import GameCard from "../components/GameCard";
 import Navbar from "../components/Navbar";
+import { Modal } from "antd";
+import { GameState } from "../types/types";
+import MatchReview from "../components/MatchReview";
 
 const Main = () => {
   const { state, dispatch } = useGame();
@@ -14,6 +17,7 @@ const Main = () => {
       <div>
         <Navbar />
       </div>
+      <MatchReview />
       <div className="w-full h-full flex flex-col items-center gap-4">
         <GameCard />
         <div className="flex justify-center h-fit w-full gap-4">

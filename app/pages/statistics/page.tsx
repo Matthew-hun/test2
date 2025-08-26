@@ -73,9 +73,9 @@ const Page = () => {
 
     // sorok összerakása
     const dat = Array.from({ length: maxLength }, (_, scoreId) => {
-      const row: Record<string, any> = { name: scoreId };
+      const row: Record<string, number> = { name: scoreId };
       playerScores.forEach((p) => {
-        row[p.label] = p.scores[scoreId]?.score ?? 0; // ha nincs, akkor 0
+        row[p.label] = p.scores[scoreId]?.score ?? "-"; // ha nincs, akkor 0
       });
       return row;
     });

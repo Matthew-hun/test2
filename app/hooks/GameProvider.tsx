@@ -259,12 +259,69 @@ const gameReducer = (state: Game, action: GameAction): Game => {
     }
     case GameActionType.LOAD_GAME: {
       const ls = localStorage.getItem("match");
+
+      const isValidGame = (obj: unknown): obj is Game => {
+        if (typeof obj !== "object" || obj === null) return false;
+
+        const gameObj = obj as Partial<Game>;
+
+        if (
+          !Array.isArray(gameObj.teams) ||
+          !gameObj.teams.every(
+            (team) =>
+              typeof team.teamId === "number" &&
+              Array.isArray(team.players) &&
+              team.players.every(
+                (player) => player && "playerId" in player && "name" in player
+              ) &&
+              typeof team.currPlayerIdx === "number" &&
+              typeof team.wins === "number"
+          )
+        )
+          return false;
+
+        if (!Array.isArray(gameObj.scores)) return false;
+
+        const settings = gameObj.settings;
+        if (
+          !settings ||
+          typeof settings.startingScore !== "number" ||
+          typeof settings.numberOfLegs !== "number" ||
+          typeof settings.startingTeam !== "number" ||
+          typeof settings.randomStartingTeam !== "boolean" ||
+          typeof settings.gameMode !== "string" ||
+          typeof settings.checkOutMode !== "string"
+        )
+          return false;
+
+        if (
+          typeof gameObj.currLegIdx !== "number" ||
+          typeof gameObj.currTeamIdx !== "number" ||
+          typeof gameObj.gameState !== "string"
+        )
+          return false;
+
+        return true;
+      };
+
       if (ls) {
-        const parsedGame = JSON.parse(ls);
-        return parsedGame;
+        try {
+          const parsedGame = JSON.parse(ls);
+          if (isValidGame(parsedGame)) {
+            return parsedGame;
+          } else {
+            localStorage.setItem("match", JSON.stringify(InitialGame));
+            return InitialGame;
+          }
+        } catch {
+          localStorage.setItem("match", JSON.stringify(InitialGame));
+          return InitialGame;
+        }
       }
+
       return InitialGame;
     }
+
     case GameActionType.SET_ACTIVE_TEAM: {
       return {
         ...state,
@@ -346,7 +403,7 @@ const gameReducer = (state: Game, action: GameAction): Game => {
           ...newState,
           gameState: isGameWin ? GameState.Over : state.gameState, // ✨ Ha teljes játékot nyer, állítsd Over-re
           winnerTeamIdx: isGameWin ? winningTeamIdx : state.winnerTeamIdx, // ✨ Győztes csapat beállítása
-          currLegIdx: state.currLegIdx + 1,
+          currLegIdx: isGameWin ? state.currLegIdx : state.currLegIdx + 1,
           currTeamIdx: nextLegStartingTeamIdx,
           teams: state.teams.map((team, idx) => {
             if (idx === winningTeamIdx) {

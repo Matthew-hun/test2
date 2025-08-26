@@ -14,8 +14,10 @@ import { GameState } from "../types/types";
 const ScoreInput = () => {
   const [inputValue, setInputValue] = useState("");
   const [disabled, setDisabled] = useState(false);
-  const [dartsThrownToCheckoutOpen, setDartsThrownToCheckoutOpen] = useState<boolean>(false);
+  const [dartsThrownToCheckoutOpen, setDartsThrownToCheckoutOpen] =
+    useState<boolean>(false);
   const [dartsThrownToCheckout, setDartsThrownToCheckout] = useState<number>(0);
+  const notPossibleCheckouts: number[] = [169, 168, 166, 165, 163, 162, 159];
 
   // Pending score - amikor várjuk a checkout input-ot
   const [pendingScore, setPendingScore] = useState<string>("");
@@ -39,7 +41,6 @@ const ScoreInput = () => {
     } else {
       scoreValue = Number(inputValue);
     }
-    console.log(scoreValue);
 
     if (scoreValue < 0 || scoreValue > 180) {
       toast("Please provide a valid input between 0-180");
@@ -53,7 +54,7 @@ const ScoreInput = () => {
     }
 
     // Ha 170 alatt lenne a maradék pontszám, nyisd meg a modalt
-    if (currentRemainingScore < 170 && currentRemainingScore >= 0) {
+    if (currentRemainingScore < 170 && currentRemainingScore >= 0 && !notPossibleCheckouts.includes(currentRemainingScore)) {
       setPendingScore(inputValue);
       setPendingScoreValue(scoreValue);
       setDartsThrownToCheckoutOpen(true);
@@ -62,17 +63,33 @@ const ScoreInput = () => {
       // Ha nem checkout helyzet, küldd el rögtön
       dispatch({
         type: GameActionType.ADD_SCORE,
-        payload: { score: scoreValue, thrownDartsToCheckout: 0, teamId: state.currTeamIdx, player: state.teams[state.currTeamIdx].players[state.teams[state.currTeamIdx].currPlayerIdx] }
+        payload: {
+          score: scoreValue,
+          thrownDartsToCheckout: 0,
+          teamId: state.currTeamIdx,
+          player:
+            state.teams[state.currTeamIdx].players[
+              state.teams[state.currTeamIdx].currPlayerIdx
+            ],
+        },
       });
       setInputValue("");
     }
   };
 
   // JAVÍTOTT FUNKCIÓ: közvetlenül paraméterként kapja meg a dart count-ot
-  const handleCheckoutConfirm = (dartCount: number) => {    
+  const handleCheckoutConfirm = (dartCount: number) => {
     dispatch({
       type: GameActionType.ADD_SCORE,
-      payload: { score: pendingScoreValue, thrownDartsToCheckout: dartCount, teamId: state.currTeamIdx, player: state.teams[state.currTeamIdx].players[state.teams[state.currTeamIdx].currPlayerIdx] }
+      payload: {
+        score: pendingScoreValue,
+        thrownDartsToCheckout: dartCount,
+        teamId: state.currTeamIdx,
+        player:
+          state.teams[state.currTeamIdx].players[
+            state.teams[state.currTeamIdx].currPlayerIdx
+          ],
+      },
     });
 
     // Reset minden state-t
@@ -102,17 +119,17 @@ const ScoreInput = () => {
     e.stopPropagation();
 
     const key = e.key;
-    if (['0', '1', '2', '3'].includes(key)) {
+    if (["0", "1", "2", "3"].includes(key)) {
       const dartCount = parseInt(key);
       console.log("Key pressed, dartCount:", dartCount);
       setDartsThrownToCheckout(dartCount);
-      
+
       // JAVÍTÁS: közvetlenül a dartCount-ot adjuk át
       setTimeout(() => {
         handleCheckoutConfirm(dartCount);
       }, 150);
     }
-    if (key === 'Escape') {
+    if (key === "Escape") {
       // Escape esetén visszaállítjuk az eredeti állapotot
       setInputValue(pendingScore);
       setPendingScore("");
@@ -151,9 +168,11 @@ const ScoreInput = () => {
           <DialogHeader>
             <DialogTitle>Checkout attempts</DialogTitle>
             <DialogDescription className="mb-4">
-              Score: <span className="font-bold text-white">{pendingScore}</span>
+              Score:{" "}
+              <span className="font-bold text-white">{pendingScore}</span>
               {" → "}
-              Remaining: <span className="font-bold text-primary">
+              Remaining:{" "}
+              <span className="font-bold text-primary">
                 {currentRemainingScore - pendingScoreValue}
               </span>
             </DialogDescription>
@@ -166,17 +185,18 @@ const ScoreInput = () => {
                     e.stopPropagation();
                     console.log("Clicked dartCount:", number);
                     setDartsThrownToCheckout(number);
-                    
+
                     // JAVÍTÁS: közvetlenül a number-t adjuk át
                     setTimeout(() => {
                       handleCheckoutConfirm(number);
                     }, 150);
                   }}
                   key={number}
-                  className={`w-20 h-20 text-3xl font-bold flex justify-center items-center rounded-md cursor-pointer transition-all duration-200 ${dartsThrownToCheckout === number
-                      ? 'bg-primary text-white'
-                      : 'bg-background-light hover:bg-primary/20'
-                    }`}
+                  className={`w-20 h-20 text-3xl font-bold flex justify-center items-center rounded-md cursor-pointer transition-all duration-200 ${
+                    dartsThrownToCheckout === number
+                      ? "bg-primary text-white"
+                      : "bg-background-light hover:bg-primary/20"
+                  }`}
                 >
                   {number}
                 </div>
@@ -200,11 +220,14 @@ const ScoreInput = () => {
         onKeyDown={handleKeyDown}
         placeholder="Score"
         pattern="[Rr]?(0|[1-9][0-9]{0,2})"
-        disabled={dartsThrownToCheckoutOpen || state.gameState === GameState.Over}
-        className={`w-full text-center text-white font-bold flex-1 bg-transparent border-b-2 border-0 outline-none text-lg placeholder-gray-400 invalid:border-rose-700 invalid:text-rose-700 focus:border-b-2 focus:placeholder-gray-300 transition-all duration-200 ${dartsThrownToCheckoutOpen
-            ? 'opacity-50 cursor-not-allowed'
-            : 'animate-pulse'
-          }`}
+        disabled={
+          dartsThrownToCheckoutOpen || state.gameState === GameState.Over
+        }
+        className={`w-full text-center text-white font-bold flex-1 bg-transparent border-b-2 border-0 outline-none text-lg placeholder-gray-400 invalid:border-rose-700 invalid:text-rose-700 focus:border-b-2 focus:placeholder-gray-300 transition-all duration-200 ${
+          dartsThrownToCheckoutOpen
+            ? "opacity-50 cursor-not-allowed"
+            : "animate-pulse"
+        }`}
       />
     </div>
   );

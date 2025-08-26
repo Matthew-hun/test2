@@ -1,5 +1,5 @@
-import { Game, GameModeType, Player, Score } from "../types/types";
-import { dartsCheckouts } from "./checkOuts";
+import { Game, GameModeType, Player, Score, Team } from "../types/types";
+import { Checkout, dartsCheckouts } from "./checkOuts";
 
 export const GetRaminingScore = (state: Game, teamIdx: number): number => {
   if (!state || state.scores.length === 0) return state.settings.startingScore;
@@ -24,10 +24,16 @@ export const GetLegScoreHistory = (
   );
 };
 
-export const GetScoreHistory = (state: Game, teamId: number, playerId: number): Score[] => {
+export const GetScoreHistory = (
+  state: Game,
+  teamId: number,
+  playerId: number
+): Score[] => {
   if (!state || state.scores.length <= 0) return [];
 
-  return state.scores.filter((score) => score.teamId == teamId && score.player.playerId == playerId);
+  return state.scores.filter(
+    (score) => score.teamId == teamId && score.player.playerId == playerId
+  );
 };
 
 export const CalcMaxNumberOfLegs = (state: Game): number => {
@@ -278,18 +284,36 @@ export const GetGreatestScorePlayer = (
 ): number => {
   if (state.scores.length === 0) return 0;
 
-  let l = 0;
+  let greatest = 0;
   state.scores
     .filter((score) => score.player.playerId == playerId)
     .forEach((score) => {
-      l += score.score;
+      if (score.score > greatest) {
+        greatest = score.score
+      }
     });
 
-  return l;
+  return greatest;
 };
 
 export const GetCheckOut = (state: Game, teamId: number) => {
   const remainingScore = GetRaminingScore(state, teamId);
 
-  return dartsCheckouts.find((checkOut) => checkOut.score === remainingScore)?.checkout;
+  return dartsCheckouts.find((checkOut: Checkout) => checkOut.remaining === remainingScore)
+    ?.checkout;
+};
+
+export const GetWinnerTeam = (state: Game): Team | undefined => {
+  if (!state || state.scores.length <= 0) return;
+
+  let teamWins = 0;
+  let winnerTeam: Team = {} as Team;
+  state.teams.forEach((team) => {
+    if (team.wins > teamWins) {
+        teamWins = team.wins;
+        winnerTeam = team;
+    }
+  });
+
+  return winnerTeam;
 };
