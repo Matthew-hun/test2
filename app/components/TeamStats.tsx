@@ -1,7 +1,7 @@
 import React, { FC, useEffect, useState } from "react";
 import { Trophy, BarChart2, Target, Star } from "lucide-react";
 import { useGame } from "../hooks/GameProvider";
-import { CalcCheckoutRate, CalcGameAvg, CalcLegAvg } from "../hooks/selectors";
+import { CalcCheckoutRate, CalcGameAvg, CalcLegAvg, CalcOneEighties, CalcOneTwenties, CalcSixties } from "../hooks/selectors";
 import {
   Tooltip,
   TooltipContent,
@@ -61,9 +61,9 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <MileStones label="60:" value={3} />
-        <MileStones label="100:" value={3} />
-        <MileStones label="140:" value={3} />
+        <MileStones label="60:" value={CalcSixties(state, teamId)} />
+        <MileStones label="120:" value={CalcOneTwenties(state, teamId)} />
+        <MileStones label="180:" value={CalcOneEighties(state, teamId)} />
       </div>
     </div>
   );
