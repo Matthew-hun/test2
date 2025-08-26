@@ -18,14 +18,10 @@ import {
 } from "../types/types";
 import { message } from "antd";
 import { GetRaminingScore, IsWinningThrow } from "./selectors";
-import { stat } from "fs";
-
-interface GameStats { }
 
 interface GameContextType {
   state: Game;
   dispatch: React.Dispatch<GameAction>;
-  stats: GameStats;
 }
 
 export enum GameActionType {
@@ -420,9 +416,8 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(gameReducer, InitialGame);
-  const stats = useMemo<GameStats>(() => ({}), [state]);
   return (
-    <GameContext.Provider value={{ state, dispatch, stats }}>
+    <GameContext.Provider value={{ state, dispatch }}>
       {children}
     </GameContext.Provider>
   );
