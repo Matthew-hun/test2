@@ -44,6 +44,7 @@ export enum GameActionType {
   CREATE_GAME,
   SAVE_GAME,
   LOAD_GAME,
+  RESET_FULL,
   /* GAME LOGIC */
   SET_ACTIVE_TEAM,
   SET_ACTIVE_PLAYER_IN_TEAM,
@@ -82,6 +83,7 @@ type GameAction =
   | { type: GameActionType.CREATE_GAME }
   | { type: GameActionType.SAVE_GAME }
   | { type: GameActionType.LOAD_GAME }
+  | { type: GameActionType.RESET_FULL }
   /* GAME LOGIC */
   | { type: GameActionType.SET_ACTIVE_TEAM; payload: number }
   | {
@@ -269,6 +271,28 @@ const gameReducer = (state: Game, action: GameAction): Game => {
         currTeamIdx: action.payload,
       };
     }
+    case GameActionType.RESET_FULL: {
+      localStorage.removeItem("match");
+      localStorage.removeItem("players");
+      const players = [
+        { playerId: 1, name: "Laci" },
+        { playerId: 2, name: "Huba" },
+        { playerId: 3, name: "Attila" },
+        { playerId: 4, name: "Noémi" },
+        { playerId: 5, name: "Bea" },
+        { playerId: 6, name: "Gábor" },
+        { playerId: 7, name: "Nolan" },
+        { playerId: 8, name: "Dani" },
+        { playerId: 9, name: "Ádám" },
+        { playerId: 10, name: "Andris" },
+        { playerId: 11, name: "Máté" },
+      ];
+
+      // JSON stringgé alakítás és elmentés localStorage-ba
+      localStorage.setItem("players", JSON.stringify(players));
+
+      return InitialGame;
+    }
     case GameActionType.SET_ACTIVE_PLAYER_IN_TEAM: {
       const { teamIdx, playerIdx } = action.payload;
 
@@ -315,7 +339,8 @@ const gameReducer = (state: Game, action: GameAction): Game => {
       if (isLegWin) {
         // Ez a dobás leg-et nyer (lehet hogy a teljes játékot is)
         const winningTeamIdx = state.currTeamIdx;
-        const nextLegStartingTeamIdx = (winningTeamIdx + 1) % state.teams.length;
+        const nextLegStartingTeamIdx =
+          (winningTeamIdx + 1) % state.teams.length;
 
         newState = {
           ...newState,

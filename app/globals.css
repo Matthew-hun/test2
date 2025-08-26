@@ -21,23 +21,35 @@
 
 [data-theme="purple"] {
   --color-primary: #5f5cff;
-  /* DaisyUI lila */
   --color-primary-dark: #7c3aed;
   --color-primary-hover: #8b5cf6;
   --color-primary-active: #6d28d9;
   --color-background: #0f172a;
 
+  --color-chart-1: #5f5cff;
+  --color-chart-2: #8b5cf6;
+  --color-chart-3: #6d28d9;
+  --color-chart-4: #a78bfa;
+  --color-chart-5: #c4b5fd;
+  --color-chart-6: #d8b4fe;
 }
 
 [data-theme="emerald"] {
   --color-primary: #10b981;
-  /* Emerald zöld */
   --color-primary-dark: #4fbb86;
   --color-primary-hover: #3c7d5e;
   --color-primary-active: #059669;
   --color-background: #0f172a;
 
+  --color-chart-1: #4fbb86;
+  --color-chart-2: #3c7d5e;
+  --color-chart-3: #059669;
+  --color-chart-4: #34d399;
+  --color-chart-5: #6ee7b7;
+  --color-chart-6: #a7f3d0;
 }
+
+
 
 [data-theme="yellow"] {
   --color-primary: #f59e0b;
@@ -177,7 +189,6 @@
   --color-primary-active: #6d28d9;
   /* active lila */
 
-
   --color-secondary: #34b5a1;
 
   --color-progress-from: #54e3c6;
@@ -188,7 +199,6 @@
 
   --color-not-active-team-card: #1f2937;
 }
-
 
 /* Ant Design Select - teljes sötét dropdown */
 .ant-select-dropdown {

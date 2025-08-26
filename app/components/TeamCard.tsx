@@ -5,7 +5,11 @@ import TeamPlayers from "./TeamPlayers";
 import TeamStats from "./TeamStats";
 import ScoreHistory from "./ScoreHistory";
 import { ConfigProvider, Progress } from "antd";
-import { CalcWinsNeeded, GetRaminingScore } from "../hooks/selectors";
+import {
+  CalcWinsNeeded,
+  GetCheckOut,
+  GetRaminingScore,
+} from "../hooks/selectors";
 import DashboardProgress from "./DashboardProgress";
 
 interface TeamCardProps {
@@ -22,7 +26,9 @@ const TeamCard: FC<TeamCardProps> = ({
   wins,
 }: TeamCardProps) => {
   const { state, dispatch } = useGame();
-  const [remainingScore, setRemainingScore] = useState<number>(state.settings.startingScore);
+  const [remainingScore, setRemainingScore] = useState<number>(
+    state.settings.startingScore
+  );
   const [progress, setProgress] = useState<number>(0);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ const TeamCard: FC<TeamCardProps> = ({
         ? 0
         : Math.floor((state.teams[teamId].wins / CalcWinsNeeded(state)) * 100)
     );
-  }, [state])
+  }, [state]);
 
   const isActiveTeam = state.currTeamIdx == teamId;
   return (
@@ -41,7 +47,7 @@ const TeamCard: FC<TeamCardProps> = ({
         components: {
           Progress: {
             defaultColor: "var(--color-progress)",
-            remainingColor: "transparent"
+            remainingColor: "transparent",
           },
         },
         token: {
@@ -53,57 +59,35 @@ const TeamCard: FC<TeamCardProps> = ({
         onClick={() =>
           dispatch({ type: GameActionType.SET_ACTIVE_TEAM, payload: teamId })
         }
-        className={`${isActiveTeam
-          ? "bg-gradient-to-br from-primary to-background"
-          : "bg-not-active-team-card"
-          }
-      cursor-pointer w-full min-w-[400px] lg:max-w-[500px] h-full p-4 rounded-md flex flex-col justify-start flex-1/${state.teams.length
-          } text-white ${isActiveTeam ? "shadow-primary/50 border-2 border-primary" : "shadow-black"} shadow-xl
+        className={`${
+          isActiveTeam
+            ? "bg-gradient-to-br from-primary to-background"
+            : "bg-not-active-team-card"
+        }
+      cursor-pointer w-full min-w-[400px] lg:max-w-[500px] h-full p-4 rounded-md flex flex-col justify-start gap-2 flex-1/${
+        state.teams.length
+      } text-white ${
+          isActiveTeam
+            ? "shadow-primary/50 border-2 border-primary"
+            : "shadow-black"
+        } shadow-xl
       `}
       >
-        
         <div id="remainingScore" className="h-fit">
-          <div className="relative h-fit my-12 flex items-center justify-center z-2">
-            <DashboardProgress teamId={teamId} steps={CalcWinsNeeded(state)} completed={state.teams[teamId].wins} isActive={teamId == state.currTeamIdx}/>
-            
-            {/* 
-            <Progress
-              type="dashboard"
+          <div className="relative h-fit my-4 flex items-center justify-center z-2">
+            <DashboardProgress
+              teamId={teamId}
               steps={CalcWinsNeeded(state)}
-              percent={progress}
-              showInfo={false}
-              trailColor="transparent"
-              strokeWidth={8}
-              size={265}
-              className="absolute z-100"
+              completed={state.teams[teamId].wins}
+              isActive={teamId == state.currTeamIdx}
             />
-
-            {isActiveTeam && (
-              <div
-                className="absolute w-72 h-72 rounded-full border-3 border-dashed border-primary animate-spin"
-                style={{ animationDuration: "40s" }}
-              />
-            )}
-
-            <div
-              className={`relative w-52 h-52 rounded-full bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl flex items-center justify-center z-10 transition-all duration-300 ${isActiveTeam
-                  ? "border-4 border-primary/60 shadow-primary/30"
-                  : "border-4 border-primary/20"
-                }`}
-            >
-              <div
-                className={`absolute inset-2 rounded-full blur-sm ${isActiveTeam
-                    ? "bg-gradient-to-r from-primary/25 to-secondary/25"
-                    : "bg-gradient-to-r from-primary/8 to-secondary/8"
-                  }`}
-              />
-              <span className="relative block text-7xl font-black bg-gradient-to-br from-white via-primary-100 to-primary-200 bg-clip-text text-transparent z-20">
-                {remainingScore}
-              </span>
-            </div>
-          */}
           </div>
         </div>
+        {GetCheckOut(state, teamId) && <div className="w-full h-fit flex justify-center items-center">
+          <p className="bg-background p-2 rounded-md">
+            {GetCheckOut(state, teamId)}
+          </p>
+        </div>}
         <div className="flex justify-center gap-3 w-full px-6">
           {state.teams[teamId].players.map((player, playerIdx) => {
             return (

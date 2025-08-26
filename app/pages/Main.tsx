@@ -7,10 +7,13 @@ import { useGame } from "../hooks/GameProvider";
 import GameCard from "../components/GameCard";
 import Navbar from "../components/Navbar";
 
-const Main = () => {  const { state, dispatch } = useGame();
+const Main = () => {
+  const { state, dispatch } = useGame();
   return (
     <div className="w-screen min-h-screen h-full p-4 flex flex-col items-center">
-      <div><Navbar /></div>
+      <div>
+        <Navbar />
+      </div>
       <div className="w-full h-full flex flex-col items-center gap-4">
         <GameCard />
         <div className="flex justify-center h-fit w-full gap-4">

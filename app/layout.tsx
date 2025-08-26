@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="purple">
+    <html lang="en" data-theme="purple" className="no-scrollbar overflow-x-hidden overflow-y-scroll custom-scrollbar">
       <ThemeProvider>
         <GameProvider>
           <ConfigProvider

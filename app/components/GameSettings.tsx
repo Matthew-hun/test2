@@ -35,6 +35,7 @@ import {
 import usePlayers from "../hooks/usePlayers";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import { useTheme } from "next-themes";
+import { TimerReset } from "lucide-react";
 
 export interface GameSettingsProps {
   open: boolean;
@@ -528,7 +529,6 @@ interface ActionButtonsProps {
 const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
   const { state, dispatch } = useGame();
   return (
-    state.teams.length > 0 && (
       <div className="flex justify-end gap-4 mt-8">
         {/* Save Button - Medium emerald */}
         {/* <button
@@ -542,6 +542,16 @@ const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
         {/* Primary Action Button - Full emerald */}
         <button
           onClick={() => {
+            dispatch({ type: GameActionType.RESET_FULL });
+            setOpen(false);
+          }}
+          className="cursor-pointer flex items-center gap-2 bg-background hover:bg-primary/70 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
+        >
+          <TimerReset className="text-lg" />
+          Reset Default
+        </button>
+        <button
+          onClick={() => {
             dispatch({ type: GameActionType.CREATE_GAME });
             setOpen(false);
           }}
@@ -551,6 +561,5 @@ const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
           Start Game
         </button>
       </div>
-    )
   );
 };
