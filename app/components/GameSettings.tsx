@@ -132,7 +132,7 @@ const Settings = () => {
             </label>
             <Segmented
               options={Object.values(GameModeType)}
-              value={state.settings.gameMode}
+              value={state.settings.gameMode ?? GameModeType.FirstTo}
               onChange={(value) =>
                 dispatch({ type: GameActionType.SET_GAME_MODE, payload: value })
               }
