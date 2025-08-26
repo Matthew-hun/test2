@@ -289,7 +289,7 @@ export const GetGreatestScorePlayer = (
     .filter((score) => score.player.playerId == playerId)
     .forEach((score) => {
       if (score.score > greatest) {
-        greatest = score.score
+        greatest = score.score;
       }
     });
 
@@ -299,8 +299,9 @@ export const GetGreatestScorePlayer = (
 export const GetCheckOut = (state: Game, teamId: number) => {
   const remainingScore = GetRaminingScore(state, teamId);
 
-  return dartsCheckouts.find((checkOut: Checkout) => checkOut.remaining === remainingScore)
-    ?.checkout;
+  return dartsCheckouts.find(
+    (checkOut: Checkout) => checkOut.remaining === remainingScore
+  )?.checkout;
 };
 
 export const GetWinnerTeam = (state: Game): Team | undefined => {
@@ -310,10 +311,49 @@ export const GetWinnerTeam = (state: Game): Team | undefined => {
   let winnerTeam: Team = {} as Team;
   state.teams.forEach((team) => {
     if (team.wins > teamWins) {
-        teamWins = team.wins;
-        winnerTeam = team;
+      teamWins = team.wins;
+      winnerTeam = team;
     }
   });
 
   return winnerTeam;
+};
+
+export const CalcSixties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfSixties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score >= 60 && score.score < 120) {
+        numberOfSixties++;
+    }
+  });
+
+  return numberOfSixties;
+};
+
+export const CalcOneTwenties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfOneTwenties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score >= 120 && score.score < 180) {
+        numberOfOneTwenties++;
+    }
+  });
+
+  return numberOfOneTwenties;
+};
+
+export const CalcOneEighties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfOneEighties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score == 180) {
+        numberOfOneEighties++;
+    }
+  });
+
+  return numberOfOneEighties;
 };
