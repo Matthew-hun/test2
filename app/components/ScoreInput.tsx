@@ -1,3 +1,4 @@
+// ScoreInput.tsx - Fixed version
 import React, { useEffect, useRef, useState } from "react";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import {
@@ -10,13 +11,21 @@ import {
 import { GetRaminingScore } from "../hooks/selectors";
 import { toast } from "sonner";
 import { GameState } from "../types/types";
+import NewScoreDisplay from "./NewScoreDisplay";
+import CheckoutAttempts from "./InputDialogs/CheckoutAttempts";
 
-const ScoreInput = () => {
+interface ScoreInputProps {
+  onScoreChange?: (score: string) => void;
+}
+
+const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
   const [inputValue, setInputValue] = useState("");
   const [disabled, setDisabled] = useState(false);
   const [dartsThrownToCheckoutOpen, setDartsThrownToCheckoutOpen] =
     useState<boolean>(false);
   const [dartsThrownToCheckout, setDartsThrownToCheckout] = useState<number>(0);
+  const [showScoreDisplay, setShowScoreDisplay] = useState(false);
+  const [displayedScore, setDisplayedScore] = useState(""); // NEW: külön state a megjelenítendő pontszámnak
   const notPossibleCheckouts: number[] = [169, 168, 166, 165, 163, 162, 159];
 
   // Pending score - amikor várjuk a checkout input-ot
@@ -32,6 +41,13 @@ const ScoreInput = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, [state]);
+
+  // Update parent component when input changes
+  useEffect(() => {
+    if (onScoreChange) {
+      onScoreChange(inputValue);
+    }
+  }, [inputValue, onScoreChange]);
 
   const handleScoreSubmit = () => {
     let scoreValue = 0;
@@ -53,27 +69,50 @@ const ScoreInput = () => {
       return;
     }
 
+    setDisplayedScore(scoreValue.toString());
+    setShowScoreDisplay(true);
+
+    // Hide after 2 seconds
+    setTimeout(() => {
+      setShowScoreDisplay(false);
+      // displayedScore törlése CSAK az animáció után
+      setTimeout(() => {
+        setDisplayedScore("");
+      }, 300); // 300ms = animáció hossza
+    }, 2000);
+
     // Ha 170 alatt lenne a maradék pontszám, nyisd meg a modalt
-    if (currentRemainingScore < 170 && currentRemainingScore >= 0 && !notPossibleCheckouts.includes(currentRemainingScore)) {
+    if (
+      currentRemainingScore < 170 &&
+      currentRemainingScore >= 0 &&
+      !notPossibleCheckouts.includes(currentRemainingScore)
+    ) {
       setPendingScore(inputValue);
       setPendingScoreValue(scoreValue);
       setDartsThrownToCheckoutOpen(true);
-      setInputValue("");
+      // JAVÍTÁS: Az inputValue törlését késleltesd, hogy a display lássa
+      setTimeout(() => {
+        setInputValue("");
+      }, 100);
     } else {
       // Ha nem checkout helyzet, küldd el rögtön
       dispatch({
         type: GameActionType.ADD_SCORE,
         payload: {
           score: scoreValue,
-          thrownDartsToCheckout: 0,
+          checkoutAttempts: 0,
           teamId: state.currTeamIdx,
           player:
             state.teams[state.currTeamIdx].players[
               state.teams[state.currTeamIdx].currPlayerIdx
             ],
+          throws: 3,
         },
       });
-      setInputValue("");
+      // JAVÍTÁS: Az inputValue törlését is késleltesd
+      setTimeout(() => {
+        setInputValue("");
+      }, 100);
     }
   };
 
@@ -83,12 +122,13 @@ const ScoreInput = () => {
       type: GameActionType.ADD_SCORE,
       payload: {
         score: pendingScoreValue,
-        thrownDartsToCheckout: dartCount,
+        checkoutAttempts: dartCount,
         teamId: state.currTeamIdx,
         player:
           state.teams[state.currTeamIdx].players[
             state.teams[state.currTeamIdx].currPlayerIdx
           ],
+        throws: 3 - dartCount,
       },
     });
 
@@ -136,6 +176,9 @@ const ScoreInput = () => {
       setPendingScoreValue(0);
       setDartsThrownToCheckoutOpen(false);
       setDartsThrownToCheckout(0);
+      // Reset display states is
+      setShowScoreDisplay(false);
+      setDisplayedScore("");
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
@@ -146,71 +189,31 @@ const ScoreInput = () => {
 
   return (
     <div className="w-full flex items-center px-20 py-5">
-      <Dialog
+      {/* JAVÍTÁS: Most a displayedScore-t használjuk */}
+      <NewScoreDisplay
+        currentScore={displayedScore}
+        isVisible={showScoreDisplay && state.settings.displayScore}
+      />
+      <CheckoutAttempts
         open={dartsThrownToCheckoutOpen}
         onOpenChange={(open) => {
           if (!open) {
-            // Ha bezárják a modalt, állítsd vissza az eredeti állapotot
             setInputValue(pendingScore);
             setPendingScore("");
             setPendingScoreValue(0);
             setDartsThrownToCheckout(0);
+            setShowScoreDisplay(false);
+            setDisplayedScore("");
           }
           setDartsThrownToCheckoutOpen(open);
         }}
-      >
-        <DialogContent
-          className="text-white"
-          onKeyDown={handleModalKeyDown}
-          tabIndex={0}
-          autoFocus
-        >
-          <DialogHeader>
-            <DialogTitle>Checkout attempts</DialogTitle>
-            <DialogDescription className="mb-4">
-              Score:{" "}
-              <span className="font-bold text-white">{pendingScore}</span>
-              {" → "}
-              Remaining:{" "}
-              <span className="font-bold text-primary">
-                {currentRemainingScore - pendingScoreValue}
-              </span>
-            </DialogDescription>
-
-            <div className="flex gap-2 py-4">
-              {Array.from({ length: 4 }, (_, i) => i).map((number) => (
-                <div
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Clicked dartCount:", number);
-                    setDartsThrownToCheckout(number);
-
-                    // JAVÍTÁS: közvetlenül a number-t adjuk át
-                    setTimeout(() => {
-                      handleCheckoutConfirm(number);
-                    }, 150);
-                  }}
-                  key={number}
-                  className={`w-20 h-20 text-3xl font-bold flex justify-center items-center rounded-md cursor-pointer transition-all duration-200 ${
-                    dartsThrownToCheckout === number
-                      ? "bg-primary text-white"
-                      : "bg-background-light hover:bg-primary/20"
-                  }`}
-                >
-                  {number}
-                </div>
-              ))}
-            </div>
-
-            <DialogDescription>
-              Press 0-3 or click on the box
-              <br />
-              <span className="text-xs text-gray-400">ESC to cancel</span>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+        dartsThrownToCheckout={dartsThrownToCheckout}
+        setDartsThrownToCheckout={setDartsThrownToCheckout}
+        handleCheckoutConfirm={handleCheckoutConfirm}
+        handleModalKeyDown={handleModalKeyDown}
+        pendingScore={pendingScore}
+        pendingRemaining={currentRemainingScore - pendingScoreValue}
+      />
 
       <input
         ref={inputRef}

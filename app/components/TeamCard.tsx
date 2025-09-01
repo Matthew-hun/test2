@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from "react";
-import { Player } from "../types/types";
+import { Badge, Player } from "../types/types";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import TeamPlayers from "./TeamPlayers";
 import TeamStats from "./TeamStats";
@@ -11,6 +11,7 @@ import {
   GetRaminingScore,
 } from "../hooks/selectors";
 import DashboardProgress from "./DashboardProgress";
+import TeamCardBadges from "./TeamCard/TeamCardBadges";
 
 interface TeamCardProps {
   teamId: number;
@@ -64,7 +65,7 @@ const TeamCard: FC<TeamCardProps> = ({
             ? "bg-gradient-to-br from-primary to-background"
             : "bg-not-active-team-card"
         }
-      cursor-pointer w-full min-w-[400px] lg:max-w-[500px] h-full p-4 rounded-md flex flex-col justify-start gap-2 flex-1/${
+      cursor-pointer w-full min-w-[400px] max-w-[600px] h-full p-4 rounded-md flex flex-col justify-start gap-2 flex-1/${
         state.teams.length
       } text-white ${
           isActiveTeam
@@ -83,11 +84,13 @@ const TeamCard: FC<TeamCardProps> = ({
             />
           </div>
         </div>
-        {GetCheckOut(state, teamId) && <div className="w-full h-fit flex justify-center items-center">
-          <p className="bg-background p-2 rounded-md">
-            {GetCheckOut(state, teamId)}
-          </p>
-        </div>}
+        {GetCheckOut(state, teamId) && (
+          <div className="w-full h-fit flex justify-center items-center">
+            <p className="bg-background p-2 rounded-md">
+              {GetCheckOut(state, teamId)}
+            </p>
+          </div>
+        )}
         <div className="flex justify-center gap-3 w-full px-6">
           {state.teams[teamId].players.map((player, playerIdx) => {
             return (

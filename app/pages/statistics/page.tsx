@@ -1,88 +1,117 @@
 "use client";
 import Navbar from "@/app/components/Navbar";
-import { GameActionType, useGame } from "@/app/hooks/GameProvider";
-import {
-  CalcPlayerCheckoutRate,
-  CalcPlayerGameAvg,
-  CalcPlayerLegAvg,
-  GetGreatestScorePlayer,
-  GetScoreHistory,
-} from "@/app/hooks/selectors";
-import { Player, Score } from "@/app/types/types";
-import { Checkbox, ConfigProvider, Radio, Segmented } from "antd";
+import LegAvgs from "@/app/components/Statistics/LegAvgs";
+import PlayerStats from "@/app/components/Statistics/PlayerStats";
+import { ScoreChart } from "@/app/components/Statistics/ScoreCharts";
+import ScoreTable from "@/app/components/Statistics/ScoreTable";
+import { useGame } from "@/app/hooks/GameProvider";
+import { GetScoreHistory } from "@/app/hooks/selectors";
+import { Player, Score, Team } from "@/app/types/types";
+import { Tab, Tabs } from "@heroui/tabs";
+import { ConfigProvider, Segmented } from "antd";
 import React, { useEffect, useState } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
 
-interface PlayerOption {
+export interface PlayerOption {
   label: string;
   value: number; // playerId
-  teamId: number;
+}
+
+export interface TeamOption {
+  label: string;
+  value: number; // teamId
 }
 
 const Page = () => {
   const { state, dispatch } = useGame();
 
-  const [selectedPlayer, setSelectedPlayer] = useState<PlayerOption | null>(
-    null
-  );
+  const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
+  const [playerTeamOptions, setPlayerTeamOptions] = useState<TeamOption[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<number>(0);
+  const [selectedPlayerTeam, setSelectedPlayerTeam] = useState<number>(0);
 
-  const [scoreHistory, setScoreHistory] = useState<Score[]>([]);
-  const [compare, setCompare] = useState<boolean>(false);
-
-  // Betöltéskor a játék állapotának lekérése
   useEffect(() => {
-    dispatch({ type: GameActionType.LOAD_GAME });
-  }, [dispatch]);
+    const pOptions = state.teams.flatMap((team) =>
+      team.players.map((player) => {
+        return { label: player.name, value: player.playerId };
+      })
+    );
 
-  // Opciók létrehozása
-  const playerOptions: PlayerOption[] = state.teams.flatMap((team) =>
-    team.players.map((player: Player) => ({
-      label: player.name,
-      value: player.playerId!,
-      teamId: team.teamId,
-    }))
-  );
-
-  // Ha nincs kiválasztott játékos, vegyük az elsőt
-  useEffect(() => {
-    if (!selectedPlayer && playerOptions.length > 0) {
-      setSelectedPlayer(playerOptions[0]);
-    }
-  }, [playerOptions, selectedPlayer]);
-
-  const data = () => {
-    // lekérjük minden játékos pontjait külön tömbben
-    const playerScores = playerOptions.map((player) => ({
-      label: player.label,
-      scores: GetScoreHistory(state, player.teamId, player.value),
-    }));
-
-    // feltételezzük, hogy mindenkinek ugyanannyi score van
-    const maxLength = Math.max(...playerScores.map((p) => p.scores.length));
-
-    // sorok összerakása
-    const dat = Array.from({ length: maxLength }, (_, scoreId) => {
-      const row: Record<string, number> = { name: scoreId };
-      playerScores.forEach((p) => {
-        row[p.label] = p.scores[scoreId]?.score ?? "-"; // ha nincs, akkor 0
-      });
-      return row;
+    let seen: number[] = [];
+    const filteredPlayerOptions = pOptions.filter((player) => {
+      if (!seen.includes(player.value) && player.value !== -1) {
+        seen.push(player.value);
+        return true;
+      }
+      return false;
     });
 
-    console.log(dat);
-    return dat;
-  };
+    setPlayerOptions(filteredPlayerOptions);
+
+    // Ha vannak játékosok, de nincs kiválasztva senki, válasszuk ki az elsőt
+    if (pOptions.length > 0 && selectedPlayer === 0) {
+      setSelectedPlayer(pOptions[0].value);
+    }
+  }, [state, selectedPlayer]);
+
+  useEffect(() => {
+    if (!selectedPlayer) {
+      setPlayerTeamOptions([]);
+      setSelectedPlayerTeam(0);
+      return;
+    }
+
+    const pTeamOptions = state.teams
+      .filter((team) =>
+        team.players.some((player) => player.playerId === selectedPlayer)
+      )
+      .map((team) => ({
+        label: "Team " + (team.teamId + 1),
+        value: team.teamId!,
+      }));
+
+    setPlayerTeamOptions(pTeamOptions);
+
+    // Automatikusan válasszuk ki az első elérhető csapatot
+    if (pTeamOptions.length > 0) {
+      setSelectedPlayerTeam(pTeamOptions[0].value);
+    } else {
+      setSelectedPlayerTeam(0);
+    }
+  }, [state, selectedPlayer]);
+
+  // Don't render if no players available
+  if (playerOptions.length === 0) {
+    return (
+      <ConfigProvider
+        theme={{
+          components: {
+            Segmented: {
+              itemActiveBg: "var(--color-primary-active)",
+              itemHoverBg: "var(--color-primary-hover)",
+              itemSelectedBg: "var(--color-primary)",
+              trackBg: "var(--color-background-light)",
+              itemColor: "white",
+              itemHoverColor: "white",
+              itemSelectedColor: "white",
+            },
+          },
+          token: {
+            colorBgContainer: "var(--color-background)",
+            colorTextPlaceholder: "var(--color-placeholder)",
+            colorText: "white",
+            colorBorder: "transparent",
+          },
+        }}
+      >
+        <div className="w-screen h-screen p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 no-scrollbar">
+          <Navbar />
+          <div className="flex items-center justify-center h-full">
+            <p className="text-white text-lg">No players available</p>
+          </div>
+        </div>
+      </ConfigProvider>
+    );
+  }
 
   return (
     <ConfigProvider
@@ -106,206 +135,75 @@ const Page = () => {
         },
       }}
     >
-      <div className="w-screen h-screen p-4 flex flex-col gap-4">
-        <div>
-          <Navbar />
-        </div>
-        <div className="flex w-full">
+      <div className="w-screen h-screen p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 no-scrollbar overflow-hidden">
+        <Navbar />
+
+        {/* Player Tabs */}
+        <div className="w-full flex gap-4">
           <Segmented
-            size="large"
-            value={selectedPlayer?.value}
-            onChange={(value) => {
-              const option = playerOptions.find(
-                (opt) => opt.value === Number(value)
-              );
-              if (option) setSelectedPlayer(option);
-            }}
             options={playerOptions}
+            onChange={(value) => setSelectedPlayer(value)}
+            value={selectedPlayer}
           />
+          {playerTeamOptions.length > 0 && (
+            <Segmented
+              options={playerTeamOptions}
+              onChange={(value) => setSelectedPlayerTeam(Number(value))}
+              value={selectedPlayerTeam}
+            />
+          )}
         </div>
 
-        <div className="w-fit grid grid-cols-4 gap-2 p-4 rounded-md bg-background-light/50">
-          <div className="stat bg-background-light rounded-md p-4 z-2 border-1 border-transparent hover:shadow-black/80 hover:shadow-lg hover:border-1 hover:border-white/10">
-            <div className="stat-title text-white text-center z-2">
-              Greatest score
-            </div>
-            <div className="stat-value text-white text-center z-2">
-              {selectedPlayer
-                ? GetGreatestScorePlayer(state, selectedPlayer.value)
-                : 0}
-            </div>
-          </div>
-          <div className="stat bg-background-light rounded-md p-4 z-2 border-1 border-transparent hover:shadow-black/80 hover:shadow-lg hover:border-1 hover:border-white/10">
-            <div className="stat-title text-white text-center">Leg Avg</div>
-            <div className="stat-value text-white text-center">
-              {selectedPlayer
-                ? CalcPlayerLegAvg(
-                    state,
-                    selectedPlayer.teamId,
-                    selectedPlayer.value
-                  )
-                : 0}
-            </div>
-          </div>
-          <div className="stat bg-background-light rounded-md p-4 z-2 border-1 border-transparent hover:shadow-black/80 hover:shadow-lg hover:border-1 hover:border-white/10">
-            <div className="stat-title text-white text-center">Match Avg</div>
-            <div className="stat-value text-white text-center">
-              {selectedPlayer
-                ? CalcPlayerGameAvg(
-                    state,
-                    selectedPlayer.teamId,
-                    selectedPlayer.value
-                  )
-                : 0}
-            </div>
-          </div>
-          <div className="stat bg-background-light rounded-md p-4 z-2 border-1 border-transparent hover:shadow-black/80 hover:shadow-lg hover:border-1 hover:border-white/10">
-            <div className="stat-title text-white text-center">
-              Checkout rate
-            </div>
-            <div className="stat-value text-white text-center">
-              {selectedPlayer
-                ? CalcPlayerCheckoutRate(
-                    state,
-                    selectedPlayer.teamId,
-                    selectedPlayer.value
-                  ).rate
-                : 0}
-            </div>
-            <div className="stat-desc text-center">
-              {selectedPlayer
-                ? CalcPlayerCheckoutRate(
-                    state,
-                    selectedPlayer.teamId,
-                    selectedPlayer.value
-                  ).won
-                : 0}{" "}
-              out of{" "}
-              {selectedPlayer
-                ? CalcPlayerCheckoutRate(
-                    state,
-                    selectedPlayer.teamId,
-                    selectedPlayer.value
-                  ).tries
-                : 0}
-            </div>
-          </div>
-        </div>
-        <div className="w-fit bg-background-light/50 rounded-md flex flex-col justify-center items-center gap-4 p-4">
-          <Checkbox value={compare} onChange={(e) => setCompare(e.target.checked)}>Compare to other</Checkbox>
-          <AreaChart
-            width={730}
-            height={250}
-            data={data()}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-primary)"
-                  stopOpacity={0.8}
+        {/* Statistics Grid - Desktop & Tablet Layout */}
+        <div className="hidden lg:block w-full flex-1 min-h-0">
+          <div className="w-full h-full grid grid-rows-3 grid-cols-4 gap-2 sm:gap-4">
+            {/* Player Stats - Top Row, Full Width */}
+            <div className="col-span-4 bg-background-light/80 rounded-md overflow-hidden">
+              {selectedPlayer && (
+                <PlayerStats
+                  teamId={selectedPlayerTeam}
+                  playerId={selectedPlayer}
                 />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-primary)"
-                  stopOpacity={0}
+              )}
+            </div>
+
+            {/* Score Chart - Row 2, Left Half */}
+            <div className="col-span-2 bg-background-light/80 rounded-md p-2 sm:p-4 overflow-hidden">
+              {selectedPlayer && (
+                <ScoreChart
+                  playerOptions={playerOptions}
+                  selectedPlayer={selectedPlayer}
+                  selectedPlayerName={
+                    playerOptions.find(
+                      (player) => player.value === selectedPlayer
+                    )?.label ?? ""
+                  }
+                  selectedTeam={selectedPlayerTeam}
+                  teamOptions={playerTeamOptions}
                 />
-              </linearGradient>
-              <linearGradient
-                id="primaryGradientStroke"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor="var(--color-primary-hover)" />
-                <stop offset="100%" stopColor="var(--color-primary)" />
-              </linearGradient>
-            </defs>
+              )}
+            </div>
 
-            <XAxis
-              dataKey="name"
-              axisLine={{ stroke: "var(--color-primary)", strokeWidth: 1 }}
-              tickLine={{ stroke: "var(--color-primary)" }}
-              tick={{ fill: "#e2e8f0", fontSize: 12 }}
-            />
+            {/* Leg Averages - Row 2, Right Half */}
+            <div className="col-span-2 bg-background-light/80 rounded-md p-2 sm:p-4 overflow-hidden">
+              {selectedPlayer && (
+                <LegAvgs
+                  teamId={selectedPlayerTeam}
+                  playerId={selectedPlayer}
+                />
+              )}
+            </div>
 
-            <YAxis
-              domain={[0, 180]}
-              axisLine={{ stroke: "var(--color-primary)", strokeWidth: 1 }}
-              tickLine={{ stroke: "var(--color-primary)" }}
-              tick={{ fill: "#e2e8f0", fontSize: 12 }}
-            />
-
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="var(--color-primary)"
-              strokeOpacity={0.2}
-            />
-
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--color-background-light)",
-                border: `none`,
-                borderRadius: "8px",
-                color: "white",
-                boxShadow: `0 4px 12px rgba(0, 0, 0, 0.3)`,
-              }}
-              labelFormatter={() => ""}
-              labelStyle={{ color: "var(--color-primary)" }}
-              formatter={(value, name) => [`${name}: ${value}`]}
-            />
-
-            {compare ? (
-              <>
-                <defs>
-                  {playerOptions.map((player, idx) => (
-                    <linearGradient
-                      key={player.value}
-                      id={`gradient-${idx}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={`var(--color-chart-${idx + 1})`}
-                        stopOpacity={0.1}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={`var(--color-chart-${idx + 1})`}
-                        stopOpacity={1}
-                      />
-                    </linearGradient>
-                  ))}
-                </defs>
-
-                {playerOptions.map((player, idx) => (
-                  <Area
-                    key={player.value}
-                    type="monotone"
-                    dataKey={player.label}
-                    stroke={`var(--color-chart-${idx + 1})`}
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill={`url(#gradient-${idx})`}
-                  />
-                ))}
-              </>
-            ) : (
-              <Area
-                type="monotone"
-                dataKey={selectedPlayer?.label as string}
-                stroke="url(#primaryGradientStroke)"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#primaryGradient)"
-              />
-            )}
-          </AreaChart>
+            {/* Score Table - Row 3, Full Width */}
+            <div className="col-span-4 bg-background-light/80 rounded-md p-2 sm:p-4 overflow-y-auto">
+              {selectedPlayer && (
+                <ScoreTable
+                  teamId={selectedPlayerTeam}
+                  playerId={selectedPlayer}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </ConfigProvider>

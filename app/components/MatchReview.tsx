@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import { GameState } from "../types/types";
-import { CalcCheckoutRate, GetWinnerTeam } from "../hooks/selectors";
+import { GetWinnerTeam } from "../hooks/selectors";
 import { Trophy, Users, Sparkles } from "lucide-react";
 
 const MatchReview = () => {
@@ -57,10 +57,10 @@ const MatchReview = () => {
                 </p>
               )}
             </div>
-            <div className="w-full flex flex-col bg-primary/50 text-white p-2 rounded-md text-center">
+            {/* <div className="w-full flex flex-col bg-primary/50 text-white p-2 rounded-md text-center">
               <p><span className="font-bold">{winnerTeam && CalcCheckoutRate(state, winnerTeam?.teamId).rate}%</span> checkout rate</p>
               <p><span className="font-bold">{winnerTeam && CalcCheckoutRate(state, winnerTeam?.teamId).won}</span> out of <span className="font-bold">{winnerTeam && CalcCheckoutRate(state, winnerTeam?.teamId).tries}</span></p>
-            </div>
+            </div> */}
             <div className="text-center text-purple-300 text-sm mt-4">
               Congratulations on an amazing match! 🏆
             </div>

@@ -27,6 +27,7 @@ const DashboardProgress: FC<DashboardProgressProps> = ({
     const [remainingScore, setRemainingScore] = useState<number>(state.settings.startingScore);
 
     useEffect(() => {
+        console.log("state:", remainingScore);
         setRemainingScore(GetRaminingScore(state, teamId));
     },[state])
     const progress = Math.min((completed / steps) * 100, 100);
@@ -111,7 +112,7 @@ const DashboardProgress: FC<DashboardProgressProps> = ({
 
             {/* Main score circle */}
             <div
-                className={`relative rounded-full bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl flex items-center justify-center z-10 transition-all duration-300 ${isActive
+                className={`relative rounded-full shadow-black shadow-xl bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl flex items-center justify-center z-10 transition-all duration-300 ${isActive
                     ? "border-4 borderprimary/60 shadowprimary/30"
                     : "border-4 borderprimary/20"
                     }`}

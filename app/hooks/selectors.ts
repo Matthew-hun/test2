@@ -1,5 +1,6 @@
 import { Game, GameModeType, Player, Score, Team } from "../types/types";
 import { Checkout, dartsCheckouts } from "./checkOuts";
+import { StatsCalculator } from "./Stats";
 
 export const GetRaminingScore = (state: Game, teamIdx: number): number => {
   if (!state || state.scores.length === 0) return state.settings.startingScore;
@@ -7,7 +8,6 @@ export const GetRaminingScore = (state: Game, teamIdx: number): number => {
   const totalScores = state.scores.filter(
     (score) => score.legId === state.currLegIdx && score.teamId === teamIdx
   );
-
   const totalScored = totalScores.reduce((sum, s) => sum + s.score, 0);
   return state.settings.startingScore - totalScored;
 };
@@ -61,6 +61,45 @@ export const CalcWinsNeeded = (state: Game): number => {
   }
 };
 
+export const GetGreatestScoredPlayer = (state: Game): {player: Player, teamId: number, score: number} | undefined => {
+  if (state.scores.length <= 0) return;
+
+  let greatestScore = 0;
+  let player;
+  let teamId;
+
+  state.scores.forEach((score) => {
+    if (score.score > greatestScore) {
+      greatestScore = score.score;
+      player = score.player;
+      teamId = score.teamId;
+    }
+  });
+
+
+  if (player === undefined || teamId === undefined) return undefined;
+  return { player, teamId: teamId, score: greatestScore };
+};
+
+export const GetGreatestScoredPlayerInLeg = (
+  state: Game
+): {player: Player, score: number} | undefined => {
+  if (state.scores.length <= 0) return undefined;
+
+  let greatestScore = 0;
+  let player;
+
+  state.scores.forEach((score) => {
+    if (score.score > greatestScore && score.legId === state.currLegIdx) {
+      greatestScore = score.score;
+      player = score.player;
+    }
+  });
+
+  if (!player) return;
+  return { player, score: greatestScore };
+};
+
 export const IsWinningThrow = (state: Game, score: number): boolean => {
   if (!state) return false;
 
@@ -89,218 +128,12 @@ export const IsWinningThrow = (state: Game, score: number): boolean => {
   }
 };
 
-export const CalcLegAvg = (
-  state: Game,
-  teamId: number,
-  legId?: number
-): number => {
-  if (!state) return 0;
-
-  let totalScore = 0;
-  let totalThrows = 0;
-  const targetLeg = legId ?? state.currLegIdx;
-
-  state.scores.forEach((score) => {
-    if (score.teamId === teamId && score.legId === targetLeg) {
-      totalScore += score.score;
-      totalThrows++;
-    }
-  });
-
-  return totalThrows > 0 ? Number((totalScore / totalThrows).toFixed(2)) : 0;
-};
-
-export const CalcPlayerLegAvg = (
-  state: Game,
-  teamId: number,
-  playerId: number,
-  legId?: number
-): number => {
-  if (!state) return 0;
-
-  let totalScore = 0;
-  let totalThrows = 0;
-  const targetLeg = legId ?? state.currLegIdx;
-
-  state.scores.forEach((score) => {
-    if (
-      score.teamId === teamId &&
-      score.player.playerId === playerId &&
-      score.legId === targetLeg
-    ) {
-      totalScore += score.score;
-      totalThrows++;
-    }
-  });
-
-  return totalThrows > 0 ? Number((totalScore / totalThrows).toFixed(2)) : 0;
-};
-
-export const CalcGameAvg = (state: Game, teamId: number): number => {
-  if (!state) return 0;
-
-  let totalScore = 0;
-  let totalThrows = 0;
-
-  state.scores.forEach((score) => {
-    if (score.teamId === teamId) {
-      totalScore += score.score;
-      totalThrows++;
-    }
-  });
-
-  return totalThrows > 0 ? Number((totalScore / totalThrows).toFixed(2)) : 0;
-};
-
-export const CalcPlayerGameAvg = (
-  state: Game,
-  teamId: number,
-  playerId: number
-): number => {
-  if (!state) return 0;
-
-  let totalScore = 0;
-  let totalThrows = 0;
-
-  state.scores.forEach((score) => {
-    if (score.teamId === teamId && score.player.playerId === playerId) {
-      totalScore += score.score;
-      totalThrows++;
-    }
-  });
-
-  return totalThrows > 0 ? Number((totalScore / totalThrows).toFixed(2)) : 0;
-};
-
-export const CalcCheckoutRate = (
-  state: Game,
-  teamId: number
-): { won: number; tries: number; rate: number } => {
-  if (!state) return { won: 0, tries: 0, rate: 0 };
-
-  let won = 0;
-  let tries = 0;
-
-  state.scores.forEach((score) => {
-    if (score.teamId === teamId) {
-      if (score.remainingScore === 0) {
-        won++;
-        tries += score.checkOutAttempts;
-      } else {
-        tries += score.checkOutAttempts;
-      }
-    }
-  });
-
-  return tries > 0
-    ? { won, tries, rate: Number(((won / tries) * 100).toFixed(2)) }
-    : { won: 0, tries: 0, rate: 0 };
-};
-
-export const CalcPlayerCheckoutRate = (
-  state: Game,
-  teamId: number,
-  playerId: number
-): { won: number; tries: number; rate: number } => {
-  if (!state) return { won: 0, tries: 0, rate: 0 };
-
-  let won = 0;
-  let tries = 0;
-
-  state.scores.forEach((score) => {
-    if (score.teamId === teamId && score.player.playerId === playerId) {
-      if (score.remainingScore === 0) {
-        won++;
-        tries += score.checkOutAttempts;
-      } else {
-        tries += score.checkOutAttempts;
-      }
-    }
-  });
-
-  return tries > 0
-    ? { won, tries, rate: Number(((won / tries) * 100).toFixed(2)) }
-    : { won: 0, tries: 0, rate: 0 };
-};
-
-export const GetGreatestScoredPlayer = (state: Game): Player | undefined => {
-  if (state.scores.length <= 0) return;
-
-  let greatestScore = 0;
-  let player;
-
-  state.scores.forEach((score) => {
-    if (score.score > greatestScore) {
-      greatestScore = score.score;
-      player = score.player;
-    }
-  });
-
-  return player;
-};
-
-export const GetGreatestScoredPlayerInLeg = (
-  state: Game
-): Player | undefined => {
-  if (state.scores.length <= 0) return undefined;
-
-  let greatestScore = 0;
-  let player;
-
-  state.scores.forEach((score) => {
-    if (score.score > greatestScore && score.legId === state.currLegIdx) {
-      greatestScore = score.score;
-      player = score.player;
-    }
-  });
-
-  return player;
-};
-
-export const GetGreatestScore = (
-  state: Game,
-  teamId: number,
-  playerId: number
-): number => {
-  if (state.scores.length <= 0) return 0;
-
-  let greatestScore = 0;
-  state.scores.forEach((score) => {
-    if (
-      score.score > greatestScore &&
-      score.teamId === teamId &&
-      score.player.playerId === playerId
-    ) {
-      greatestScore = score.score;
-    }
-  });
-
-  return greatestScore;
-};
-
-export const GetGreatestScorePlayer = (
-  state: Game,
-  playerId: number | null | undefined
-): number => {
-  if (state.scores.length === 0) return 0;
-
-  let greatest = 0;
-  state.scores
-    .filter((score) => score.player.playerId == playerId)
-    .forEach((score) => {
-      if (score.score > greatest) {
-        greatest = score.score
-      }
-    });
-
-  return greatest;
-};
-
 export const GetCheckOut = (state: Game, teamId: number) => {
   const remainingScore = GetRaminingScore(state, teamId);
 
-  return dartsCheckouts.find((checkOut: Checkout) => checkOut.remaining === remainingScore)
-    ?.checkout;
+  return dartsCheckouts.find(
+    (checkOut: Checkout) => checkOut.remaining === remainingScore
+  )?.checkout;
 };
 
 export const GetWinnerTeam = (state: Game): Team | undefined => {
@@ -310,10 +143,81 @@ export const GetWinnerTeam = (state: Game): Team | undefined => {
   let winnerTeam: Team = {} as Team;
   state.teams.forEach((team) => {
     if (team.wins > teamWins) {
-        teamWins = team.wins;
-        winnerTeam = team;
+      teamWins = team.wins;
+      winnerTeam = team;
     }
   });
 
   return winnerTeam;
 };
+
+export const CalcSixties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfSixties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score >= 60 && score.score < 120) {
+        numberOfSixties++;
+    }
+  });
+
+  return numberOfSixties;
+};
+
+export const CalcOneTwenties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfOneTwenties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score >= 120 && score.score < 180) {
+        numberOfOneTwenties++;
+    }
+  });
+
+  return numberOfOneTwenties;
+};
+
+export const CalcOneEighties = (state: Game, teamId: number): number => {
+  if (!state || state.scores.length <= 0) return 0;
+
+  let numberOfOneEighties = 0;
+  state.scores.forEach((score) => {
+    if (score.teamId === teamId && score.score == 180) {
+        numberOfOneEighties++;
+    }
+  });
+
+  return numberOfOneEighties;
+};
+
+export const CalcPlayerGreatestScore = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerLegAvg = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerGameAvg = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerCheckoutRate = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerSuccessfullCheckouts = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerSixties = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerOneTwenties = (state: Game, teamId: number, playerId: number) => {
+
+}
+
+export const CalcPlayerOneEighties = (state: Game, teamId: number, playerId: number) => {
+
+}

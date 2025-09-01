@@ -11,12 +11,20 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { CheckOutModeType, GameModeType, Player, Team } from "../types/types";
+import {
+  CheckoutModeType,
+  Game,
+  GameModeType,
+  Player,
+  type Settings,
+  Team,
+} from "../types/types";
 // Javított import:
 import {
   Button,
   Checkbox,
   CheckboxProps,
+  ColorPicker,
   ConfigProvider,
   Input,
   InputNumber,
@@ -46,6 +54,19 @@ const GameSettings: FC<GameSettingsProps> = ({
   open,
   setOpen,
 }: GameSettingsProps) => {
+  const { state } = useGame();
+  const [settings, setSettings] = useState<Settings>(state.settings);
+  const [teams, setTeams] = useState<Team[]>([]);
+
+  useEffect(() => {
+    const game = localStorage.getItem("game");
+    if (game) {
+      const parsedGame: Game = JSON.parse(game);
+      setSettings(parsedGame.settings);
+      setTeams(parsedGame.teams);
+    }
+  }, []);
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
@@ -57,18 +78,17 @@ const GameSettings: FC<GameSettingsProps> = ({
         </SheetHeader>
         <div className="w-full flex flex-col gap-4 p-4">
           <Theme />
-          <Settings />
-          <TeamSetup />
+          <Settings settings={settings} setSettings={setSettings} />
+          <TeamSetup teams={teams} setTeams={setTeams} />
           <AddNewPlayer />
         </div>
         <SheetFooter>
-          <ActionButtons setOpen={setOpen} />
+          <ActionButtons setOpen={setOpen} settings={settings} teams={teams} />
         </SheetFooter>
       </SheetContent>
     </Sheet>
   );
 };
-
 
 export default GameSettings;
 
@@ -77,15 +97,41 @@ const Theme = () => {
 
   return (
     <div className="flex gap-4 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <div className="cursor-pointer w-4 h-4 rounded-full bg-[#5f5cff]" onClick={() => setTheme('purple')}></div>
-      <div className="cursor-pointer w-4 h-4 rounded-full bg-[#10b981]" onClick={() => setTheme('emerald')}></div>
+      <div
+        className="cursor-pointer w-4 h-4 rounded-full bg-[#5f5cff]"
+        onClick={() => setTheme("purple")}
+      ></div>
+      <div
+        className="cursor-pointer w-4 h-4 rounded-full bg-[#10b981]"
+        onClick={() => setTheme("emerald")}
+      ></div>
       {/* <div className="cursor-pointer w-4 h-4 rounded-full bg-primary"></div> */}
     </div>
-  )
+  );
+};
+
+interface ISettingsProps {
+  settings: Settings;
+  setSettings: React.Dispatch<React.SetStateAction<Settings>>;
 }
 
-const Settings = () => {
+const Settings: FC<ISettingsProps> = ({
+  settings,
+  setSettings,
+}: ISettingsProps) => {
   const { state, dispatch } = useGame();
+
+  useEffect(() => {
+    setSettings(state.settings);
+  }, [state.settings]);
+
+  const handleSettingsChange = <T extends keyof Settings>(
+    key: T,
+    value: Settings[T]
+  ) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
   return (
     <ConfigProvider
       theme={{
@@ -125,7 +171,7 @@ const Settings = () => {
           <h2 className="text-xl font-semibold text-white">Match Settings</h2>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           {/* Game Mode */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-slate-300">
@@ -133,10 +179,8 @@ const Settings = () => {
             </label>
             <Segmented
               options={Object.values(GameModeType)}
-              value={state.settings.gameMode ?? GameModeType.FirstTo}
-              onChange={(value) =>
-                dispatch({ type: GameActionType.SET_GAME_MODE, payload: value })
-              }
+              value={settings?.gameMode ?? GameModeType.FirstTo}
+              onChange={(value) => handleSettingsChange("gameMode", value)}
               size="large"
             />
           </div>
@@ -148,13 +192,8 @@ const Settings = () => {
             </label>
             <Segmented
               options={Array.from({ length: 5 }, (_, i) => i + 1)}
-              value={state.settings.numberOfLegs}
-              onChange={(value) =>
-                dispatch({
-                  type: GameActionType.SET_NUMBER_OF_LEGS,
-                  payload: value,
-                })
-              }
+              value={settings?.numberOfLegs ?? 3}
+              onChange={(value) => handleSettingsChange("numberOfLegs", value)}
               size="large"
             />
           </div>
@@ -165,14 +204,9 @@ const Settings = () => {
               Checkout Mode
             </label>
             <Segmented
-              options={Object.values(CheckOutModeType)}
-              value={state.settings.checkOutMode}
-              onChange={(value) =>
-                dispatch({
-                  type: GameActionType.SET_CHECKOUT_MODE,
-                  payload: value,
-                })
-              }
+              options={Object.values(CheckoutModeType)}
+              value={settings?.checkoutMode ?? CheckoutModeType.Double}
+              onChange={(value) => handleSettingsChange("checkoutMode", value)}
               size="large"
             />
           </div>
@@ -183,12 +217,9 @@ const Settings = () => {
               Starting Score
             </label>
             <InputNumber
-              value={state.settings.startingScore}
+              value={settings?.startingScore ?? 501}
               onChange={(value) =>
-                dispatch({
-                  type: GameActionType.SET_STARTING_SCORE,
-                  payload: Number(value),
-                })
+                handleSettingsChange("startingScore", Number(value))
               }
               controls={false}
               size="large"
@@ -201,17 +232,36 @@ const Settings = () => {
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={state.settings.randomStartingTeam}
+                checked={settings?.randomStartingTeam ?? false}
                 onChange={(e) =>
-                  dispatch({
-                    type: GameActionType.SET_RANDOM_STARTING_TEAM,
-                    payload: e.target.checked,
-                  })
+                  handleSettingsChange("randomStartingTeam", e.target.checked)
                 }
                 className="text-white"
               />
               <span className="text-slate-300 font-medium">
                 Random Starting Team
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={settings?.displayScore ?? false}
+                onChange={(e) =>
+                  handleSettingsChange("displayScore", e.target.checked)
+                }
+                className="text-white"
+              />
+              <span className="text-slate-300 font-medium">Display score</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={settings?.askNumberOfThrows ?? false}
+                onChange={(e) =>
+                  handleSettingsChange("askNumberOfThrows", e.target.checked)
+                }
+                className="text-white"
+              />
+              <span className="text-slate-300 font-medium">
+                Ask number of throws
               </span>
             </div>
           </div>
@@ -221,21 +271,93 @@ const Settings = () => {
   );
 };
 
-interface PlayerOptions {
-  label: string;
-  value: string | number | null; // vagy csak number, ha nem lehet null
+interface ITeamSetupProps {
+  teams: Team[];
+  setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
 }
 
-const TeamSetup = () => {
+const TeamSetup: FC<ITeamSetupProps> = ({
+  teams,
+  setTeams,
+}: ITeamSetupProps) => {
   const { players } = usePlayers();
   const { state, dispatch } = useGame();
 
   const [messageApi, contextHolder] = message.useMessage();
   const Message = (type: "error" | "success", message: string) => {
-    messageApi.open({
-      type: type,
-      content: message,
-    });
+    messageApi.open({ type, content: message });
+  };
+
+  const AddTeam = () => {
+    const newTeam: Team = {
+      teamId: teams.length,
+      players: [
+        {
+          playerId: -1, // üres slot
+          name: "",
+        },
+      ],
+      currPlayerIdx: 0,
+      wins: 0,
+    };
+    setTeams((prev) => [...prev, newTeam]);
+  };
+
+  const RemoveTeam = (teamIndex: number) => {
+    setTeams((prev) => prev.filter((_, idx) => idx !== teamIndex));
+  };
+
+  const AddPlayer = (teamIndex: number) => {
+    const newEmptyPlayer: Player = {
+      playerId: -1, // üres slot
+      name: "",
+    };
+
+    setTeams((prev) =>
+      prev.map((team, idx) =>
+        idx === teamIndex
+          ? {
+              ...team,
+              players: [...team.players, newEmptyPlayer],
+            }
+          : team
+      )
+    );
+  };
+
+  const RemovePlayer = (teamIndex: number, playerIndex: number) => {
+    setTeams((prev) =>
+      prev.map((team, idx) =>
+        idx === teamIndex
+          ? {
+              ...team,
+              players:
+                team.players.length > 1
+                  ? team.players.filter((_, pIdx) => pIdx !== playerIndex)
+                  : team.players,
+            }
+          : team
+      )
+    );
+  };
+
+  const UpdatePlayerInTeam = (
+    teamIndex: number,
+    playerIndex: number,
+    newPlayer: Player
+  ) => {
+    setTeams((prev) =>
+      prev.map((team, idx) =>
+        idx === teamIndex
+          ? {
+              ...team,
+              players: team.players.map((p, pIdx) =>
+                pIdx === playerIndex ? newPlayer : p
+              ),
+            }
+          : team
+      )
+    );
   };
 
   return (
@@ -270,17 +392,11 @@ const TeamSetup = () => {
               Teams & Players
             </h2>
             <span className="bg-primary text-white text-xs px-2 py-1 rounded-full font-medium">
-              {state.teams.length} {state.teams.length === 1 ? "Team" : "Teams"}
+              {teams.length} {teams.length === 1 ? "Team" : "Teams"}
             </span>
           </div>
           <button
-            onClick={() => {
-              dispatch({ type: GameActionType.ADD_TEAM });
-              dispatch({
-                type: GameActionType.ADD_EMPTY_PLAYER,
-                payload: state.teams.length,
-              });
-            }}
+            onClick={AddTeam}
             className="cursor-pointer flex items-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
           >
             <IoAddCircle className="text-lg" />
@@ -288,10 +404,9 @@ const TeamSetup = () => {
           </button>
         </div>
 
-        {/* Teams Grid */}
-        {state.teams.length > 0 ? (
+        {teams.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {state.teams.map((team, teamIndex) => (
+            {teams.map((team, teamIndex) => (
               <div
                 key={`team-${teamIndex}`}
                 className="bg-white/10 border border-slate-600 rounded-xl p-5 hover:border-primary/50 transition-all duration-300 group"
@@ -328,12 +443,7 @@ const TeamSetup = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() =>
-                      dispatch({
-                        type: GameActionType.REMOVE_TEAM,
-                        payload: teamIndex,
-                      })
-                    }
+                    onClick={() => RemoveTeam(teamIndex)}
                     className="cursor-pointer w-8 h-8 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                   >
                     <IoClose className="text-sm" />
@@ -351,49 +461,46 @@ const TeamSetup = () => {
                         <Select
                           size="large"
                           className="w-full"
-                          options={players.map((player) => ({
-                            label: player.name,
-                            value: player.playerId, // <-- csak az ID kerül ide
+                          options={players.map((p) => ({
+                            label: p.name,
+                            value: p.playerId,
                           }))}
-                          value={player.playerId ?? undefined}
+                          value={
+                            player.playerId !== -1 ? player.playerId : undefined
+                          }
                           placeholder={`Select Player ${playerIndex + 1}`}
                           onChange={(value) => {
-                            const selectedPlayer = players.find(p => p.playerId === value);
+                            const selectedPlayer = players.find(
+                              (p) => p.playerId === value
+                            );
                             if (selectedPlayer) {
-                              dispatch({
-                                type: GameActionType.UPDATE_PLAYER_IN_TEAM,
-                                payload: {
-                                  teamIdx: teamIndex,
-                                  playerIdx: playerIndex,
-                                  newPlayer: selectedPlayer,
-                                },
-                              });
+                              UpdatePlayerInTeam(
+                                teamIndex,
+                                playerIndex,
+                                selectedPlayer
+                              );
                             }
                           }}
                           showSearch
                           optionFilterProp="label"
                           filterOption={(input, option) =>
-                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                            (option?.label ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
                           }
-                          getPopupContainer={(triggerNode) => triggerNode.parentElement}
+                          getPopupContainer={(triggerNode) =>
+                            triggerNode.parentElement
+                          }
                           dropdownStyle={{ zIndex: 999999 }}
                           style={{ pointerEvents: "auto" }}
                         />
-
                       </div>
                       <button
                         onClick={() => {
-                          if (state.teams[teamIndex].players.length <= 1) {
-                            // Message("error", "You need atleast one player");
+                          if (team.players.length <= 1) {
                             toast("You need at least one Player");
                           } else {
-                            dispatch({
-                              type: GameActionType.REMOVE_PLAYER_FROM_TEAM,
-                              payload: {
-                                teamIdx: teamIndex,
-                                playerIdx: playerIndex,
-                              },
-                            });
+                            RemovePlayer(teamIndex, playerIndex);
                           }
                         }}
                         className="cursor-pointer w-8 h-8 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg flex items-center justify-center transition-all duration-200"
@@ -403,14 +510,8 @@ const TeamSetup = () => {
                     </div>
                   ))}
 
-                  {/* Add Player Button */}
                   <button
-                    onClick={() =>
-                      dispatch({
-                        type: GameActionType.ADD_EMPTY_PLAYER,
-                        payload: teamIndex,
-                      })
-                    }
+                    onClick={() => AddPlayer(teamIndex)}
                     className="cursor-pointer w-full flex items-center justify-center gap-2 bg-slate-600 hover:bg-primary/20 border border-dashed border-slate-500 hover:border-primary text-slate-400 hover:text-primary py-3 rounded-lg transition-all duration-200 font-medium"
                   >
                     <IoAddCircle className="text-lg" />
@@ -421,7 +522,6 @@ const TeamSetup = () => {
             ))}
           </div>
         ) : (
-          /* Empty State */
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <IoPeople className="text-3xl text-slate-400" />
@@ -433,13 +533,7 @@ const TeamSetup = () => {
               Add your first team to get started
             </p>
             <button
-              onClick={() => {
-                dispatch({ type: GameActionType.ADD_TEAM });
-                dispatch({
-                  type: GameActionType.ADD_EMPTY_PLAYER,
-                  payload: state.teams.length,
-                });
-              }}
+              onClick={AddTeam}
               className="cursor-pointer flex items-center gap-2 bg-primary hover:bg-primary text-white px-6 py-3 rounded-lg font-medium mx-auto transition-all duration-200 shadow-lg hover:shadow-primary/25"
             >
               <IoAddCircle className="text-lg" />
@@ -524,14 +618,20 @@ const AddNewPlayer = () => {
 
 interface ActionButtonsProps {
   setOpen: (value: boolean) => void;
+  settings: Settings;
+  teams: Team[];
 }
 
-const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
+const ActionButtons: FC<ActionButtonsProps> = ({
+  setOpen,
+  settings,
+  teams,
+}) => {
   const { state, dispatch } = useGame();
   return (
-      <div className="flex justify-end gap-4 mt-8">
-        {/* Save Button - Medium emerald */}
-        {/* <button
+    <div className="flex justify-end gap-4 mt-8">
+      {/* Save Button - Medium emerald */}
+      {/* <button
               onClick={Close}
               className="cursor-pointer flex items-center gap-2 bg-emerald-700/30 hover:bg-primary/40 border border-primary/40 hover:border-primary/60 text-emerald-200 hover:text-emerald-100 px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/15"
             >
@@ -539,27 +639,29 @@ const ActionButtons: FC<ActionButtonsProps> = ({ setOpen }) => {
               Save current match
             </button> */}
 
-        {/* Primary Action Button - Full emerald */}
-        <button
-          onClick={() => {
-            dispatch({ type: GameActionType.RESET_FULL });
-            setOpen(false);
-          }}
-          className="cursor-pointer flex items-center gap-2 bg-background hover:bg-primary/70 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
-        >
-          <TimerReset className="text-lg" />
-          Reset Default
-        </button>
-        <button
-          onClick={() => {
-            dispatch({ type: GameActionType.CREATE_GAME });
-            setOpen(false);
-          }}
-          className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-primar/50 to-primary hover:from-primary/50 hover:to-primary text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
-        >
-          <IoPlay className="text-lg" />
-          Start Game
-        </button>
-      </div>
+      {/* Primary Action Button - Full emerald */}
+      <button
+        onClick={() => {
+          dispatch({ type: GameActionType.RESET_FULL });
+          setOpen(false);
+        }}
+        className="cursor-pointer flex items-center gap-2 bg-background hover:bg-primary/70 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
+      >
+        <TimerReset className="text-lg" />
+        Reset Default
+      </button>
+      <button
+        onClick={() => {
+          dispatch({ type: GameActionType.SET_SETTINGS, payload: settings });
+          dispatch({ type: GameActionType.SET_TEAMS, payload: teams });
+          dispatch({ type: GameActionType.CREATE_GAME });
+          setOpen(false);
+        }}
+        className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-primar/50 to-primary hover:from-primary/50 hover:to-primary text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-primary/25"
+      >
+        <IoPlay className="text-lg" />
+        Start Game
+      </button>
+    </div>
   );
 };
