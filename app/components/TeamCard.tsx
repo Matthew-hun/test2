@@ -11,7 +11,6 @@ import {
   GetRaminingScore,
 } from "../hooks/selectors";
 import DashboardProgress from "./DashboardProgress";
-import TeamCardBadges from "./TeamCard/TeamCardBadges";
 
 interface TeamCardProps {
   teamId: number;
