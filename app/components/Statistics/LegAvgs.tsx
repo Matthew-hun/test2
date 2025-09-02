@@ -11,7 +11,7 @@ const LegAvgs:FC<ILegAvgsProps> = ({teamId, playerId} : ILegAvgsProps) => {
   const { state } = useGame();
   const legs = StatsCalculator.CalcAllLegAvg(state, teamId, playerId);
   return (
-    <div className={`w-full h-full grid grid-cols-${legs.length} gap-2`}>
+    <div className={`w-full h-full grid grid-cols-2 gap-2`}>
       {legs.map((leg, legId) => {
         return (
           <div

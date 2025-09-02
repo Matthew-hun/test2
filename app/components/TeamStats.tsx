@@ -45,15 +45,6 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
           }
         />
         <StatBox
-          icon={<Target className="w-5 h-5" />}
-          label="Game Avg"
-          value={
-            isNaN(StatsCalculator.CalculateGameAvg(state, teamId))
-              ? 0
-              : StatsCalculator.CalculateGameAvg(state, teamId).toFixed(2)
-          }
-        />
-        <StatBox
           icon={<ArrowBigLeft className="w-5 h-5"/>}
           label="Previous Leg Avg"
           value={
@@ -72,6 +63,15 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
                   undefined,
                   state.currLegIdx - 1
                 ).toFixed(2)
+          }
+        />
+        <StatBox
+          icon={<Target className="w-5 h-5" />}
+          label="Game Avg"
+          value={
+            isNaN(StatsCalculator.CalculateGameAvg(state, teamId))
+              ? 0
+              : StatsCalculator.CalculateGameAvg(state, teamId).toFixed(2)
           }
         />
         <div className="group relative w-full flex justify-center items-center">

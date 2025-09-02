@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { GameState } from "../types/types";
 import NewScoreDisplay from "./NewScoreDisplay";
 import CheckoutAttempts from "./InputDialogs/CheckoutAttempts";
+import { inputScoreRegex } from "../types/regex";
 
 interface ScoreInputProps {
   onScoreChange?: (score: string) => void;
@@ -67,6 +68,11 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
   const handleScoreSubmit = () => {
     let scoreValue = 0;
 
+    if (!inputScoreRegex.test(inputValue)) {
+      toast("Please provide a valid input between 0-180");
+      return;
+    }
+
     if (inputValue.toLocaleLowerCase().startsWith("r")) {
       scoreValue = currentRemainingScore - Number(inputValue.slice(1));
     } else {
@@ -81,6 +87,10 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
       return;
     } else if (currentRemainingScore - scoreValue < 0) {
       toast("Can not score more than the remaining");
+      return;
+    }
+
+    if (isNaN(scoreValue)) {
       return;
     }
 

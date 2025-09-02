@@ -180,7 +180,7 @@ const TeamPlayers: FC<TeamPlayersProps> = ({
               <p>
                 Game Avg:{" "}
                 <span>
-                  {StatsCalculator.CalculateLegAvg(
+                  {StatsCalculator.CalculateGameAvg(
                     state,
                     teamId,
                     player.playerId

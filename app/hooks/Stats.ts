@@ -1,5 +1,5 @@
 import { stat } from "fs";
-import { CheckoutStatsType, Game, Player, Score, Team } from "../types/types";
+import { CheckoutStatsType, CompareTypes, Game, Player, Score, Team } from "../types/types";
 
 type playersStat = {
     greatestScore: number,
@@ -67,7 +67,9 @@ export class StatsCalculator {
                 : score.teamId === teamId
         );
         const scoreSum = filteredScores.reduce((acc, curr) => acc + curr.score, 0);
+        console.log("sum:", scoreSum);
         const throwsSum = filteredScores.reduce((acc, curr) => acc + curr.throws, 0);
+        console.log("throws:", throwsSum)
         if (throwsSum === 0) return 0;
 
         return (scoreSum / throwsSum) * 3;
@@ -97,7 +99,11 @@ export class StatsCalculator {
         const scores = state.scores;
         if(scores.length === 0) return 0;
 
-        const sixties = scores.filter((score) => score.score >= 60 && score.score < 120).length;
+        const sixties = scores.filter((score) => 
+            playerId
+                ? score.teamId === teamId && score.player.playerId === playerId && score.score >= 60 && score.score < 120
+                : score.teamId === teamId && score.score >= 60 && score.score < 120
+        ).length;
 
         return sixties;
     }
@@ -106,7 +112,11 @@ export class StatsCalculator {
         const scores = state.scores;
         if(scores.length === 0) return 0;
 
-        const oneTwenties = scores.filter((score) => score.score >= 120 && score.score < 180).length;
+        const oneTwenties = scores.filter((score) => 
+            playerId
+                ? score.teamId === teamId && score.player.playerId === playerId && score.score >= 120 && score.score < 180
+                : score.teamId === teamId && score.score >= 120 && score.score < 180
+        ).length;
 
         return oneTwenties;
     }
@@ -115,7 +125,11 @@ export class StatsCalculator {
         const scores = state.scores;
         if(scores.length === 0) return 0;
 
-        const oneEighties = scores.filter((score) => score.score === 180).length;
+        const oneEighties = scores.filter((score) => 
+            playerId
+                ? score.teamId === teamId && score.player.playerId === playerId && score.score === 180
+                : score.teamId === teamId && score.score === 180
+        ).length;
 
         return oneEighties;
     }
@@ -165,22 +179,48 @@ export class StatsCalculator {
         return bestTeam;
     }
 
-    static GetPlayers = (state: Game) => {
+    static GetPlayers = (state: Game, compare: CompareTypes, teamId: number, playerId: number) => {
         if (!state || state.teams.length <= 0) return;
-        const players = [{
-            title: "Stats",
-            dataIndex: "stats",
-            key: -1,
-            teamId: -1,
-        }];
-        state.teams.flatMap((team, teamIdx) => team.players.map((player) => {
-            players.push({
-                title: player.name,
-                dataIndex: player.name,
-                key: player.playerId,
-                teamId: team.teamId,
-            });
-        }));
+        const players: any[] = [];
+
+        switch (compare) {
+            case CompareTypes.NoCompare:
+                state.teams.flatMap((team, teamIdx) => team.players.map((player) => {
+                    if (player.playerId === playerId) {
+                        players.push({
+                        title: player.name,
+                        dataIndex: player.name,
+                        key: player.playerId,
+                        teamId: team.teamId,
+                    });
+                    }
+                }));
+                break;
+            case CompareTypes.CompareToTeam:
+                state.teams.flatMap((team, teamIdx) => team.players.map((player) => {
+                    if (team.teamId === teamId) {
+                        players.push({
+                        title: player.name,
+                        dataIndex: player.name,
+                        key: player.playerId,
+                        teamId: team.teamId,
+                    });
+                    }
+                }));
+                break;
+            case CompareTypes.CompareToEveryBody:
+                state.teams.flatMap((team, teamIdx) => team.players.map((player) => {
+                    players.push({
+                    title: player.name,
+                    dataIndex: player.name,
+                    key: player.playerId,
+                    teamId: team.teamId,
+                });
+                }));
+                break;
+            default:
+                break;
+        }
 
         const seen: number[] = [];
         const filteredPlayers = players.filter(player => {
@@ -194,22 +234,73 @@ export class StatsCalculator {
         return filteredPlayers;
     }
 
-    static GetPlayersStatsData = (state: Game) => {
-        if (!state || state.scores.length <= 0 || state.teams.length <= 0) return;
-        const players = this.GetPlayers(state);
-        const data: playersStat[] = [];
+    static GetTableFormattedData = (state: Game, compare: CompareTypes, teamId: number, playerId: number) => {
+    if (!state || state.scores.length <= 0 || state.teams.length <= 0) return [];
+    
+    const players = this.GetPlayers(state, compare, teamId, playerId);
+    if (!players || players.length === 0) return [];
 
-        players?.map(player => {
-            const newRow = {
-                greatestScore: this.CalculateGreatestScore(state, player.teamId, player.key),
-                bestCheckout: this.BestCheckout(state, player.teamId, player.key),
-                gameAvg: this.CalculateGameAvg(state, player.teamId, player.key),
-                bestLegAvg: this.BestLegAvg(state, player.teamId, player.key),
-                checkoutRate: this.CalculateCheckoutStats(state, player.teamId, player.key).rate,
-            }
-            data.push(newRow);
-        });
+    const statCategories = [
+      { key: "greatestScore", name: "Greatest Score" },
+      { key: "bestCheckout", name: "Best Checkout" },
+      { key: "gameAvg", name: "Game Average" },
+      { key: "bestLegAvg", name: "Best Leg Average" },
+      { key: "checkoutRate", name: "Checkout Rate %" }
+    ];
 
-        return data;
-    }
+    const tableData = statCategories.map(category => {
+      const values = players.map(player => {
+        switch (category.key) {
+          case "greatestScore":
+            return this.CalculateGreatestScore(state, player.teamId, player.key).toString();
+          
+          case "bestCheckout":
+            const checkout = this.BestCheckout(state, player.teamId, player.key);
+            return isFinite(checkout) ? checkout.toString() : "0";
+          
+          case "gameAvg":
+            return this.CalculateGameAvg(state, player.teamId, player.key).toFixed(2);
+          
+          case "bestLegAvg":
+            return this.BestLegAvg(state, player.teamId, player.key).toFixed(2);
+          
+          case "checkoutRate":
+            const checkoutStats = this.CalculateCheckoutStats(state, player.teamId, player.key);
+            return isNaN(checkoutStats.rate) ? "0.00%" : `${checkoutStats.rate.toFixed(2)}%`;
+          
+          default:
+            return "N/A";
+        }
+      });
+
+      return {
+        statName: category.name,
+        values: values
+      };
+    });
+
+    return tableData;
+  }
+
+  // Meglévő metódusok maradnak ugyanazok...
+  static GetPlayersStatsData = (state: Game, compare: CompareTypes, teamId: number, playerId: number) => {
+    if (!state || state.scores.length <= 0 || state.teams.length <= 0) return [];
+    
+    const players = this.GetPlayers(state, compare, teamId, playerId);
+    if (!players) return [];
+
+    const data: any[] = [];
+    players.forEach(player => {
+      const newRow = {
+        greatestScore: this.CalculateGreatestScore(state, player.teamId, player.key),
+        bestCheckout: this.BestCheckout(state, player.teamId, player.key),
+        gameAvg: this.CalculateGameAvg(state, player.teamId, player.key),
+        bestLegAvg: this.BestLegAvg(state, player.teamId, player.key),
+        checkoutRate: this.CalculateCheckoutStats(state, player.teamId, player.key).rate,
+      };
+      data.push(newRow);
+    });
+
+    return data;
+  }
 }

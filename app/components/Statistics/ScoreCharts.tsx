@@ -23,31 +23,30 @@ interface ChartDataRow {
   [player: string]: number; // játékos neve → score
 }
 
-interface AreaChartProps {
+interface IAreaChartProps {
   playerOptions: PlayerOption[];
   teamOptions: TeamOption[];
   selectedPlayer: number;
   selectedPlayerName: string;
   selectedTeam: number;
+  compare: CompareTypes;
 }
 
-export const ScoreChart: React.FC<AreaChartProps> = ({
+export const ScoreChart: React.FC<IAreaChartProps> = ({
   playerOptions,
   teamOptions,
   selectedPlayer,
   selectedPlayerName,
   selectedTeam,
+  compare,
 }) => {
   const { state } = useGame();
-  const [selectedCompare, setSelectedCompare] = useState<CompareTypes>(
-    CompareTypes.NoCompare
-  );
   const [chartData, setChartData] = useState<ChartDataRow[]>([]);
 
   useEffect(() => {
     // lekérjük minden játékos pontjait külön tömbben
     let playerScores: {label: string, scores: Score[]}[] = [];
-    switch (selectedCompare) {
+    switch (compare) {
       case CompareTypes.NoCompare:
         playerScores = playerOptions.map((player) => ({
           label: player.label,
@@ -89,10 +88,10 @@ export const ScoreChart: React.FC<AreaChartProps> = ({
       }
     );
     setChartData(chartData);
-  }, [selectedPlayer, selectedPlayerName, selectedTeam, selectedCompare, state, playerOptions]);
+  }, [selectedPlayer, selectedPlayerName, selectedTeam, compare, state, playerOptions]);
 
   const renderChartAreas = () => {
-    switch (selectedCompare) {
+    switch (compare) {
       case CompareTypes.NoCompare:
         return (
           <Area
@@ -145,11 +144,6 @@ export const ScoreChart: React.FC<AreaChartProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col items-center gap-2">
-      <Radio.Group
-        value={selectedCompare}
-        options={Object.values(CompareTypes)}
-        onChange={(e) => setSelectedCompare(e.target.value as CompareTypes)}
-      />
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={chartData}

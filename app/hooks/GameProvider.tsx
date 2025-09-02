@@ -207,7 +207,8 @@ const gameReducer = (state: Game, action: GameAction): Game => {
               teams: resetTeams,
               settings: state.settings,
               gameState: GameState.Running,
-              currLegIdx: 0
+              currLegIdx: 0,
+              currTeamIdx: state.settings.startingTeam,
             };
             if (typeof window !== 'undefined') {
               localStorage.setItem("game", JSON.stringify(newState));
@@ -293,6 +294,18 @@ const gameReducer = (state: Game, action: GameAction): Game => {
             console.log(gameHistory);
             if (!newState) return state;
             return newState;
+        }
+        case GameActionType.SET_STARTING_TEAM : {
+          const startingTeam = action.payload;
+          const newSettings: Settings = {
+            ...state.settings,
+            startingTeam: startingTeam,
+          }
+          const newState: Game = {
+            ...state,
+            settings: newSettings,
+          }
+          return newState;
         }
 
         default:
