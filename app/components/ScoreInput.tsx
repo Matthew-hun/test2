@@ -1,4 +1,4 @@
-// ScoreInput.tsx - Fixed version
+// ScoreInput.tsx - Display timing javítás
 import React, { useEffect, useRef, useState } from "react";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import {
@@ -25,7 +25,7 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
     useState<boolean>(false);
   const [dartsThrownToCheckout, setDartsThrownToCheckout] = useState<number>(0);
   const [showScoreDisplay, setShowScoreDisplay] = useState(false);
-  const [displayedScore, setDisplayedScore] = useState(""); // NEW: külön state a megjelenítendő pontszámnak
+  const [displayedScore, setDisplayedScore] = useState("");
   const notPossibleCheckouts: number[] = [169, 168, 166, 165, 163, 162, 159];
 
   // Pending score - amikor várjuk a checkout input-ot
@@ -49,6 +49,21 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
     }
   }, [inputValue, onScoreChange]);
 
+  // Új függvény a display score megjelenítéshez
+  const showScoreDisplayAnimation = (scoreValue: number) => {
+    setDisplayedScore(scoreValue.toString());
+    setShowScoreDisplay(true);
+
+    // Hide after 2 seconds
+    setTimeout(() => {
+      setShowScoreDisplay(false);
+      // displayedScore törlése CSAK az animáció után
+      setTimeout(() => {
+        setDisplayedScore("");
+      }, 300); // 300ms = animáció hossza
+    }, 2000);
+  };
+
   const handleScoreSubmit = () => {
     let scoreValue = 0;
 
@@ -69,18 +84,6 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
       return;
     }
 
-    setDisplayedScore(scoreValue.toString());
-    setShowScoreDisplay(true);
-
-    // Hide after 2 seconds
-    setTimeout(() => {
-      setShowScoreDisplay(false);
-      // displayedScore törlése CSAK az animáció után
-      setTimeout(() => {
-        setDisplayedScore("");
-      }, 300); // 300ms = animáció hossza
-    }, 2000);
-
     // Ha 170 alatt lenne a maradék pontszám, nyisd meg a modalt
     if (
       currentRemainingScore < 170 &&
@@ -95,7 +98,9 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
         setInputValue("");
       }, 100);
     } else {
-      // Ha nem checkout helyzet, küldd el rögtön
+      // Ha nem checkout helyzet, küldd el rögtön ÉS mutasd a display-t
+      showScoreDisplayAnimation(scoreValue);
+      
       dispatch({
         type: GameActionType.ADD_SCORE,
         payload: {
@@ -118,6 +123,9 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
 
   // JAVÍTOTT FUNKCIÓ: közvetlenül paraméterként kapja meg a dart count-ot
   const handleCheckoutConfirm = (dartCount: number) => {
+    // JAVÍTÁS: Itt jelenítsd meg a display animációt checkout esetén
+    showScoreDisplayAnimation(pendingScoreValue);
+
     dispatch({
       type: GameActionType.ADD_SCORE,
       payload: {
@@ -189,7 +197,6 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
 
   return (
     <div className="w-full flex items-center px-20 py-5">
-      {/* JAVÍTÁS: Most a displayedScore-t használjuk */}
       <NewScoreDisplay
         currentScore={displayedScore}
         isVisible={showScoreDisplay && state.settings.displayScore}
