@@ -1,6 +1,5 @@
 import { stat } from "fs";
 import { CheckoutStatsType, Game, Player, Score, Team } from "../types/types";
-import { GetGreatestScorePlayer } from "@/test2/app/hooks/selectors";
 
 type playersStat = {
     greatestScore: number,
