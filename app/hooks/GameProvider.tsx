@@ -104,6 +104,7 @@ const InitialGame: Game = {
     startingTeam: 0,
     randomStartingTeam: false,
     displayScore: false,
+    askNumberOfThrows: false,
   },
   currLegIdx: 0,
   currTeamIdx: 0,

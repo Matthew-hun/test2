@@ -1,5 +1,14 @@
 import { stat } from "fs";
 import { CheckoutStatsType, Game, Player, Score, Team } from "../types/types";
+import { GetGreatestScorePlayer } from "@/test2/app/hooks/selectors";
+
+type playersStat = {
+    greatestScore: number,
+    bestCheckout: number,
+    gameAvg: number,
+    bestLegAvg: number,
+    checkoutRate: number,
+}
 
 export class StatsCalculator {
     static GetScores = (state: Game, teamId?: number, playerId?: number): Score[] => {
@@ -155,5 +164,53 @@ export class StatsCalculator {
         });
 
         return bestTeam;
+    }
+
+    static GetPlayers = (state: Game) => {
+        if (!state || state.teams.length <= 0) return;
+        let players = [{
+            title: "Stats",
+            dataIndex: "stats",
+            key: -1,
+            teamId: -1,
+        }];
+        state.teams.flatMap((team, teamIdx) => team.players.map((player) => {
+            players.push({
+                title: player.name,
+                dataIndex: player.name,
+                key: player.playerId,
+                teamId: team.teamId,
+            });
+        }));
+
+        let seen: number[] = [];
+        const filteredPlayers = players.filter(player => {
+            if (!seen.includes(player.key)) {
+                seen.push(player.key);
+                return true;
+            }
+            return false;
+        })
+        console.log(players);
+        return filteredPlayers;
+    }
+
+    static GetPlayersStatsData = (state: Game) => {
+        if (!state || state.scores.length <= 0 || state.teams.length <= 0) return;
+        const players = this.GetPlayers(state);
+        const data: playersStat[] = [];
+
+        players?.map(player => {
+            const newRow = {
+                greatestScore: this.CalculateGreatestScore(state, player.teamId, player.key),
+                bestCheckout: this.BestCheckout(state, player.teamId, player.key),
+                gameAvg: this.CalculateGameAvg(state, player.teamId, player.key),
+                bestLegAvg: this.BestLegAvg(state, player.teamId, player.key),
+                checkoutRate: this.CalculateCheckoutStats(state, player.teamId, player.key).rate,
+            }
+            data.push(newRow);
+        });
+
+        return data;
     }
 }

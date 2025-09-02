@@ -6,7 +6,7 @@ import { ScoreChart } from "@/app/components/Statistics/ScoreCharts";
 import ScoreTable from "@/app/components/Statistics/ScoreTable";
 import { useGame } from "@/app/hooks/GameProvider";
 import { GetScoreHistory } from "@/app/hooks/selectors";
-import { Player, Score, Team } from "@/app/types/types";
+import { CompareTypes, Player, Score, Team } from "@/app/types/types";
 import { Tab, Tabs } from "@heroui/tabs";
 import { ConfigProvider, Segmented } from "antd";
 import React, { useEffect, useState } from "react";
@@ -28,6 +28,9 @@ const Page = () => {
   const [playerTeamOptions, setPlayerTeamOptions] = useState<TeamOption[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<number>(0);
   const [selectedPlayerTeam, setSelectedPlayerTeam] = useState<number>(0);
+  const [compareType, setCompareType] = useState<CompareTypes>(
+    CompareTypes.NoCompare
+  );
 
   useEffect(() => {
     const pOptions = state.teams.flatMap((team) =>
@@ -152,6 +155,11 @@ const Page = () => {
               value={selectedPlayerTeam}
             />
           )}
+          <Segmented
+            options={Object.values(CompareTypes)}
+            onChange={(value) => setCompareType(value)}
+            value={compareType}
+          />
         </div>
 
         {/* Statistics Grid - Desktop & Tablet Layout */}

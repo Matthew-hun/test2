@@ -1,5 +1,6 @@
 import { useGame } from "@/app/hooks/GameProvider";
 import { StatsCalculator } from "@/app/hooks/Stats";
+import { Table } from "antd";
 import React, { FC } from "react";
 
 interface IPlayerStatsProps {
@@ -13,6 +14,10 @@ const PlayerStats: FC<IPlayerStatsProps> = ({ teamId, playerId }: IPlayerStatsPr
   const player = state.teams[Number(teamId)]?.players.find(
     (p) => p.playerId === playerId
   );
+
+  // const columns = StatsCalculator.GetPlayers(state);
+  // const data = StatsCalculator.GetPlayersStatsData(state);
+  // console.log(data);
 
   if (!player) return <div>No player data available</div>;
 
@@ -39,6 +44,9 @@ const PlayerStats: FC<IPlayerStatsProps> = ({ teamId, playerId }: IPlayerStatsPr
         </div>
       ))}
     </div>
+    // <Table columns={columns} dataSource={data}>
+
+    // </Table>
   );
 };
 
