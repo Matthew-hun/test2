@@ -168,7 +168,7 @@ export class StatsCalculator {
 
     static GetPlayers = (state: Game) => {
         if (!state || state.teams.length <= 0) return;
-        let players = [{
+        const players = [{
             title: "Stats",
             dataIndex: "stats",
             key: -1,
@@ -183,7 +183,7 @@ export class StatsCalculator {
             });
         }));
 
-        let seen: number[] = [];
+        const seen: number[] = [];
         const filteredPlayers = players.filter(player => {
             if (!seen.includes(player.key)) {
                 seen.push(player.key);

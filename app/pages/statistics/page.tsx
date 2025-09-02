@@ -39,7 +39,7 @@ const Page = () => {
       })
     );
 
-    let seen: number[] = [];
+    const seen: number[] = [];
     const filteredPlayerOptions = pOptions.filter((player) => {
       if (!seen.includes(player.value) && player.value !== -1) {
         seen.push(player.value);

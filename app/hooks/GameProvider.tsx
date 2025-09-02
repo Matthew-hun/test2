@@ -261,7 +261,7 @@ const gameReducer = (state: Game, action: GameAction): Game => {
                 currPlayerIdx: (currTeam.currPlayerIdx + 1) % currTeam.players.length,
             }
 
-            let nextTeamIdx: number = 
+            const nextTeamIdx: number = 
               isLegWin
                 ? (state.settings.startingTeam + state.currLegIdx + 1) % state.teams.length
                 : (state.currTeamIdx + 1) % state.teams.length;
