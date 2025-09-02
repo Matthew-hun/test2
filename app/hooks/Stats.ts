@@ -181,7 +181,15 @@ export class StatsCalculator {
 
     static GetPlayers = (state: Game, compare: CompareTypes, teamId: number, playerId: number) => {
         if (!state || state.teams.length <= 0) return;
-        const players: any[] = [];
+        interface PlayerTableData {
+            title: string;
+            dataIndex: string;
+            key: number;
+            teamId: number;
+        }
+
+
+        const players: PlayerTableData[] = [];
 
         switch (compare) {
             case CompareTypes.NoCompare:
@@ -289,7 +297,16 @@ export class StatsCalculator {
     const players = this.GetPlayers(state, compare, teamId, playerId);
     if (!players) return [];
 
-    const data: any[] = [];
+    interface PlayerStatsRow {
+        greatestScore: number;
+        bestCheckout: number;
+        gameAvg: number;
+        bestLegAvg: number;
+        checkoutRate: number;
+    }
+
+
+    const data: PlayerStatsRow[] = [];
     players.forEach(player => {
       const newRow = {
         greatestScore: this.CalculateGreatestScore(state, player.teamId, player.key),
