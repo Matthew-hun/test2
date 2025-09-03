@@ -139,13 +139,16 @@ const Settings: FC<ISettingsProps> = ({
     setSettings(state.settings);
   }, [state.settings]);
 
-  const handleSettingsChange = <T extends keyof Settings>(
-    key: T,
-    value: Settings[T]
-  ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    dispatch({ type: GameActionType.SET_SETTINGS, payload: settings });
-  };
+ const handleSettingsChange = <T extends keyof Settings>(
+  key: T,
+  value: Settings[T]
+) => {
+  setSettings((prev) => {
+    const updated = { ...prev, [key]: value };
+    dispatch({ type: GameActionType.SET_SETTINGS, payload: updated });
+    return updated;
+  });
+};
 
   return (
     <ConfigProvider
