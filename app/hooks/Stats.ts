@@ -81,7 +81,7 @@ export class StatsCalculator {
     );
     if (throwsSum === 0) return 0;
 
-    return (scoreSum / filtered.length);
+    return (scoreSum / filteredScores.length);
   };
 
   static CalculateGameAvg = (
@@ -106,7 +106,7 @@ export class StatsCalculator {
     console.log("throws:", throwsSum);
     if (throwsSum === 0) return 0;
 
-    return (scoreSum / filtered.length);
+    return (scoreSum / filteredScores.length);
   };
 
   static CalculateCheckoutStats = (
