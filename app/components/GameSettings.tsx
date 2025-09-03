@@ -466,6 +466,14 @@ const TeamSetup: FC<ITeamSetupProps> = ({
             clearBg: "var(--color-background-light)",
             colorTextPlaceholder: "gray",
           },
+          InputNumber: {
+            colorBgContainer: "var(--color-background)",
+            colorText: "white",
+            colorBorder: "transparent",
+            colorPrimary: "var(--color-primary)",
+            colorPrimaryHover: "var(--color-primary-hover)",
+          },
+
           Button: {
             colorPrimary: "var(--color-primary)",
             colorPrimaryHover: "var(--color-primary-hover)",
