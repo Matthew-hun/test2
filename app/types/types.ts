@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Stack } from "../hooks/Stack";
+import { IconType } from "react-icons/lib";
 
 export enum CompareTypes {
   NoCompare = "No compare",
@@ -80,6 +81,6 @@ export type Game = {
 export type Badge = {
   name: string;
   desc: string;
-  icon: ReactNode;
+  icon: IconType;
   color: string;
 }

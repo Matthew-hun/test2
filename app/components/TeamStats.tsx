@@ -14,7 +14,7 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
 
   return (
     <div className="grid grid-cols-1 gap-2 rounded-xl p-6">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <CurrLegAvg
           icon={<BarChart2 className="w-5 h-5" />}
           label="Leg Avg"
@@ -45,8 +45,8 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
           }
         />
         <StatBox
-          icon={<ArrowBigLeft className="w-5 h-5"/>}
-          label="Previous Leg Avg"
+          icon={<ArrowBigLeft className="w-5 h-5" />}
+          label="Prev Leg Avg"
           value={
             isNaN(
               StatsCalculator.CalculateLegAvg(
@@ -72,6 +72,19 @@ const TeamStats: FC<TeamStatsProps> = ({ teamId }: TeamStatsProps) => {
             isNaN(StatsCalculator.CalculateGameAvg(state, teamId))
               ? 0
               : StatsCalculator.CalculateGameAvg(state, teamId).toFixed(2)
+          }
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <StatBox
+          icon={<Star className="w-5 h-5" />}
+          label="Best Checkout"
+          value={
+            isNaN(StatsCalculator.BestCheckout(state, teamId))
+              ? "-"
+              : isFinite(StatsCalculator.BestCheckout(state, teamId))
+                ? StatsCalculator.BestCheckout(state, teamId)
+                : "-"
           }
         />
         <div className="group relative w-full flex justify-center items-center">
@@ -140,11 +153,11 @@ const StatBox = ({
   label: string;
   value: string | number;
 }) => (
-  <div className="w-full flex items-center justify-start rounded-xl py-4 px-4 gap-3 bg-black/30 backdrop-blur-sm border border-white/10 shadow-lg hover:bg-black/40 transition-all duration-200">
-    <div className="text-primary/80 p-2 bg-primary/20 rounded-lg">{icon}</div>
+  <div className={`w-full flex items-center justify-start rounded-xl py-4 px-4 gap-3 bg-black/30 backdrop-blur-sm border border-white/10 shadow-lg`}>
+    <div className={`text-primary/80 p-2 bg-primary/20 rounded-lg`}>{icon}</div>
     <div className="flex flex-col gap-0.5">
-      <p className="text-xs text-primary/80 font-medium">{label}</p>
-      <p className="text-xl font-bold text-white">{value}</p>
+      <p className={`text-xs text-primary/80 font-medium`}>{label}</p>
+      <p className={`text-xl font-bold text-white`}>{value}</p>
     </div>
   </div>
 );
@@ -162,15 +175,17 @@ const CurrLegAvg = ({
   status: "less" | "greater" | "same";
   state: Game;
 }) => (
-  <div className="w-full flex items-center justify-start rounded-xl py-4 px-4 gap-3 bg-black/30 backdrop-blur-sm border border-white/10 shadow-lg hover:bg-black/40 transition-all duration-200">
-    <div className="text-primary/80 p-2 bg-primary/20 rounded-lg">{icon}</div>
+  <div className={`w-full flex items-center justify-start rounded-xl py-4 px-4 gap-3 bg-black/30 backdrop-blur-sm border border-white/10 shadow-lg`}>
+    <div className={`text-primary/80 p-2 bg-primary/20 rounded-lg`}>{icon}</div>
     <div className="flex flex-col gap-0.5">
-      <p className="text-xs text-primary/80 font-medium">{label}</p>
+      <p className={`text-xs text-primary/80 font-medium`}>{label}</p>
       <div className="flex items-center gap-1">
-        {status !== "same" && state.currLegIdx > 0  && (
+        {status !== "same" && state.currLegIdx > 0 && (
           <ArrowUp
             className={`${
-              status === "greater" ? "text-green-500" : "rotate-180 text-red-500"
+              status === "greater"
+                ? "text-green-500"
+                : "rotate-180 text-red-500"
             }`}
           />
         )}

@@ -57,6 +57,7 @@ const GameSettings: FC<GameSettingsProps> = ({
   const { state } = useGame();
   const [settings, setSettings] = useState<Settings>(state.settings);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [randomTeam, setRandomTeam] = useState<boolean>(false);
 
   useEffect(() => {
     const game = localStorage.getItem("game");
@@ -71,15 +72,24 @@ const GameSettings: FC<GameSettingsProps> = ({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
         side="left"
-        className="min-w-[50vw] bg-background-light text-white border-0 overflow-y-scroll custom-scrollbar"
+        className="min-w-[50vw] bg-background-light text-white border-0 overflow-y-scroll custom-scrollbar z-[100]"
       >
         <SheetHeader>
           <SheetTitle className="text-white">Game Settings</SheetTitle>
         </SheetHeader>
         <div className="w-full flex flex-col gap-4 p-4">
           <Theme />
-          <Settings settings={settings} setSettings={setSettings} />
-          <TeamSetup teams={teams} setTeams={setTeams} />
+          <Settings
+            settings={settings}
+            setSettings={setSettings}
+            randomTeam={randomTeam}
+            setRandomTeam={setRandomTeam}
+          />
+          <TeamSetup
+            teams={teams}
+            setTeams={setTeams}
+            randomTeam={randomTeam}
+          />
           <AddNewPlayer />
         </div>
         <SheetFooter>
@@ -113,11 +123,15 @@ const Theme = () => {
 interface ISettingsProps {
   settings: Settings;
   setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+  randomTeam: boolean;
+  setRandomTeam: (value: boolean) => void;
 }
 
 const Settings: FC<ISettingsProps> = ({
   settings,
   setSettings,
+  randomTeam,
+  setRandomTeam,
 }: ISettingsProps) => {
   const { state, dispatch } = useGame();
 
@@ -130,6 +144,7 @@ const Settings: FC<ISettingsProps> = ({
     value: Settings[T]
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+    dispatch({ type: GameActionType.SET_SETTINGS, payload: settings });
   };
 
   return (
@@ -254,15 +269,11 @@ const Settings: FC<ISettingsProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={settings?.askNumberOfThrows ?? false}
-                onChange={(e) =>
-                  handleSettingsChange("askNumberOfThrows", e.target.checked)
-                }
+                checked={randomTeam}
+                onChange={(e) => setRandomTeam(e.target.checked)}
                 className="text-white"
               />
-              <span className="text-slate-300 font-medium">
-                Ask number of throws
-              </span>
+              <span className="text-slate-300 font-medium">Random Team</span>
             </div>
           </div>
         </div>
@@ -274,11 +285,13 @@ const Settings: FC<ISettingsProps> = ({
 interface ITeamSetupProps {
   teams: Team[];
   setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
+  randomTeam: boolean;
 }
 
 const TeamSetup: FC<ITeamSetupProps> = ({
   teams,
   setTeams,
+  randomTeam,
 }: ITeamSetupProps) => {
   const { players } = usePlayers();
   const { state, dispatch } = useGame();
@@ -286,6 +299,85 @@ const TeamSetup: FC<ITeamSetupProps> = ({
   const [messageApi, contextHolder] = message.useMessage();
   const Message = (type: "error" | "success", message: string) => {
     messageApi.open({ type, content: message });
+  };
+
+  const [numberOfTeams, setNumberOfTeams] = useState<number>(0);
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+
+  const handleSelectedPlayers = (value: string[]) => {
+    const selected: Player[] = [];
+    value.map((value) => {
+      players.map((player) => {
+        if (player.playerId == Number(value)) {
+          selected.push(player);
+        }
+      });
+    });
+
+    setSelectedPlayers(selected);
+  };
+
+  const GenerateRandomTeam = () => {
+    if (selectedPlayers.length === 0) {
+      Message("error", "Please select players first");
+      return;
+    }
+
+    if (numberOfTeams === 0) {
+      Message("error", "Please set number of teams");
+      return;
+    }
+
+    // Keverjük meg a játékosokat véletlenszerűen
+    const shuffledPlayers = [...selectedPlayers].sort(
+      () => Math.random() - 0.5
+    );
+
+    // Hozzunk létre új csapatokat
+    const newTeams: Team[] = [];
+    const maxTeamSize = Math.ceil(shuffledPlayers.length / numberOfTeams);
+
+    // Csapatok létrehozása
+    for (let i = 0; i < numberOfTeams; i++) {
+      const newTeam: Team = {
+        teamId: i,
+        players: [],
+        currPlayerIdx: 0,
+        wins: 0,
+      };
+      newTeams.push(newTeam);
+    }
+
+    // Játékosok elosztása a csapatok között - véletlenszerű elosztás
+    shuffledPlayers.forEach((player) => {
+      // Keressük meg azokat a csapatokat, amelyekben még van hely
+      const availableTeams = newTeams.filter(
+        (team) => team.players.length < maxTeamSize
+      );
+
+      if (availableTeams.length > 0) {
+        // Véletlenszerűen választunk egy elérhető csapatot
+        const randomIndex = Math.floor(Math.random() * availableTeams.length);
+        const selectedTeam = availableTeams[randomIndex];
+
+        // Megkeressük a kiválasztott csapat indexét az eredeti tömbben
+        const teamIndex = newTeams.findIndex(
+          (team) => team.teamId === selectedTeam.teamId
+        );
+        newTeams[teamIndex].players.push(player);
+      }
+    });
+
+    // Ellenőrizzük, hogy minden csapatban van legalább egy játékos
+    const emptyTeams = newTeams.filter((team) => team.players.length === 0);
+    if (emptyTeams.length > 0) {
+      Message("error", "Not enough players for the number of teams");
+      return;
+    }
+
+    // Beállítjuk az új csapatokat
+    setTeams(newTeams);
+    Message("success", `Successfully created ${numberOfTeams} teams!`);
   };
 
   const AddTeam = () => {
@@ -374,10 +466,19 @@ const TeamSetup: FC<ITeamSetupProps> = ({
             clearBg: "var(--color-background-light)",
             colorTextPlaceholder: "gray",
           },
+          Button: {
+            colorPrimary: "var(--color-primary)",
+            colorPrimaryHover: "var(--color-primary-hover)",
+            borderRadius: 12,
+          },
           Message: {
             contentBg: "var(--color-background)",
             colorText: "white",
           },
+        },
+        token: {
+          colorIcon: "#fff",
+          colorIconHover: "red",
         },
       }}
     >
@@ -403,7 +504,87 @@ const TeamSetup: FC<ITeamSetupProps> = ({
             Add Team
           </button>
         </div>
+        {randomTeam && (
+          <div className="mb-8 p-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 backdrop-blur-sm border border-slate-600/30 rounded-2xl relative z-10">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="text-2xl">🎲</span>
+              Random Team Generator
+            </h3>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  Number of Teams
+                </label>
+                <InputNumber
+                  size="large"
+                  value={numberOfTeams}
+                  onChange={(value) => setNumberOfTeams(Number(value))}
+                  min={1}
+                  max={selectedPlayers.length}
+                  placeholder="Enter number of teams"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  Select Players ({selectedPlayers.length} selected)
+                </label>
+                <Select
+                  size="large"
+                  className="w-full z-[99999]"
+                  options={players.map((p) => ({
+                    label: p.name,
+                    value: p.playerId,
+                  }))}
+                  mode="multiple"
+                  placeholder="Select Players"
+                  showSearch
+                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  onChange={handleSelectedPlayers}
+                  getPopupContainer={(triggerNode) =>
+                    triggerNode.parentElement?.parentElement || document.body
+                  }
+                  style={{ pointerEvents: "auto" }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <Button
+                onClick={GenerateRandomTeam}
+                type="primary"
+                size="large"
+                disabled={
+                  selectedPlayers.length === 0 ||
+                  numberOfTeams === 0 ||
+                  numberOfTeams > selectedPlayers.length
+                }
+                className="flex-1 h-12"
+              >
+                🎲 Generate Random Teams
+              </Button>
+
+              {selectedPlayers.length > 0 && numberOfTeams > 0 && (
+                <div className="text-sm text-slate-400 bg-slate-800/50 px-4 py-2 rounded-lg">
+                  {numberOfTeams > selectedPlayers.length
+                    ? "⚠️ Too many teams for selected players"
+                    : `✓ ${Math.floor(
+                        selectedPlayers.length / numberOfTeams
+                      )}-${Math.ceil(
+                        selectedPlayers.length / numberOfTeams
+                      )} players per team`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {teams.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {teams.map((team, teamIndex) => (
@@ -491,7 +672,6 @@ const TeamSetup: FC<ITeamSetupProps> = ({
                           getPopupContainer={(triggerNode) =>
                             triggerNode.parentElement
                           }
-                          dropdownStyle={{ zIndex: 999999 }}
                           style={{ pointerEvents: "auto" }}
                         />
                       </div>

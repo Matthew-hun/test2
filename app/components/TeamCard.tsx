@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from "react";
-import { Badge, Player } from "../types/types";
+import { Badge, CheckoutModeType, Player } from "../types/types";
 import { GameActionType, useGame } from "../hooks/GameProvider";
 import TeamPlayers from "./TeamPlayers";
 import TeamStats from "./TeamStats";
@@ -11,6 +11,13 @@ import {
   GetRaminingScore,
 } from "../hooks/selectors";
 import DashboardProgress from "./DashboardProgress";
+import TeamBadges from "./TeamCard/TeamBadges";
+import { HiFire } from "react-icons/hi";
+import { StatsCalculator } from "../hooks/Stats";
+import { title } from "process";
+import { icons } from "lucide-react";
+import { color } from "framer-motion";
+import { CheckoutGenerator } from "../hooks/CheckoutGenerator";
 
 interface TeamCardProps {
   teamId: number;
@@ -30,6 +37,7 @@ const TeamCard: FC<TeamCardProps> = ({
     state.settings.startingScore
   );
   const [progress, setProgress] = useState<number>(0);
+  const [badges, setBadges] = useState<Badge[]>([]);
 
   useEffect(() => {
     setRemainingScore(GetRaminingScore(state, teamId));
@@ -39,6 +47,25 @@ const TeamCard: FC<TeamCardProps> = ({
         : Math.floor((state.teams[teamId].wins / CalcWinsNeeded(state)) * 100)
     );
   }, [state]);
+
+  const cg = new CheckoutGenerator();
+  cg.GenerateCheckouts(2, CheckoutModeType.Double);
+
+  useEffect(() => {
+    const newBadges: Badge[] = [];
+    const greatestAvgTeamId = StatsCalculator.GetGreatestAvgTeam(state);
+
+    if (greatestAvgTeamId === teamId) {
+      newBadges.push({
+        name: "Avg",
+        desc: "",
+        icon: HiFire,
+        color: "#fff",
+      });
+    }
+
+    setBadges(newBadges);
+  }, [state, teamId]);
 
   const isActiveTeam = state.currTeamIdx == teamId;
   return (
@@ -64,7 +91,7 @@ const TeamCard: FC<TeamCardProps> = ({
             ? "bg-gradient-to-br from-primary to-background"
             : "bg-not-active-team-card"
         }
-      cursor-pointer w-full min-w-[400px] max-w-[600px] h-full p-4 rounded-md flex flex-col justify-start gap-2 flex-1/${
+      cursor-pointer relative w-full min-w-[400px] max-w-[600px] h-full p-4 rounded-md flex flex-col justify-start gap-2 flex-1/${
         state.teams.length
       } text-white ${
           isActiveTeam
@@ -73,6 +100,7 @@ const TeamCard: FC<TeamCardProps> = ({
         } shadow-xl
       `}
       >
+        {/* <TeamBadges teamId={teamId} badges={badges} /> */}
         <div id="remainingScore" className="h-fit">
           <div className="relative h-fit my-4 flex items-center justify-center z-2">
             <DashboardProgress
@@ -90,7 +118,7 @@ const TeamCard: FC<TeamCardProps> = ({
             </p>
           </div>
         )}
-        <div className="flex justify-center gap-3 w-full px-6">
+        <div className="flex justify-center gap-3 w-full px-1">
           {state.teams[teamId].players.map((player, playerIdx) => {
             return (
               <TeamPlayers

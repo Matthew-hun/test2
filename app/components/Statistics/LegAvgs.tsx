@@ -1,6 +1,6 @@
 import { useGame } from "@/app/hooks/GameProvider";
 import { StatsCalculator } from "@/app/hooks/Stats";
-import React, { FC } from "react";
+import React, { FC, useEffect, useState } from "react";
 
 interface ILegAvgsProps {
     teamId: number;
@@ -9,7 +9,11 @@ interface ILegAvgsProps {
 
 const LegAvgs:FC<ILegAvgsProps> = ({teamId, playerId} : ILegAvgsProps) => {
   const { state } = useGame();
-  const legs = StatsCalculator.CalcAllLegAvg(state, teamId, playerId);
+  const [legs, setLegs] = useState<number[]>([]);
+  useEffect(() => {
+    setLegs(StatsCalculator.CalcAllLegAvg(state, teamId, playerId));
+  }, [state, teamId, playerId])
+
   return (
     <div className={`w-full h-full grid grid-cols-2 gap-2`}>
       {legs.map((leg, legId) => {

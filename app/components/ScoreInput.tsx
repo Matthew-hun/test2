@@ -68,7 +68,7 @@ const ScoreInput = ({ onScoreChange }: ScoreInputProps) => {
   const handleScoreSubmit = () => {
     let scoreValue = 0;
 
-    if (!inputScoreRegex.test(inputValue)) {
+    if (!inputScoreRegex.test(inputValue) && inputValue !== "") {
       toast("Please provide a valid input between 0-180");
       return;
     }

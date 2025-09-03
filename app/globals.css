@@ -265,3 +265,8 @@
     background-color: var(--color-background) !important;
   }
 }
+
+
+.custom-select-dropdown {
+  z-index: 100000 !important;
+}
